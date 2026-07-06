@@ -1,7 +1,6 @@
 # Insta360 Ace Pro 2
 
-<!-- 카메라 제품 사진: images/camera.jpg 추가 시 아래 주석 해제 -->
-<!-- <img src="images/camera.jpg" width="360"> -->
+<img src="images/insta360_acepro_2.jpg" width="420">
 
 | 샘플 (복도) | 샘플 (공원) | 캘리브레이션 보드 |
 |---|---|---|

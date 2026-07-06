@@ -1,7 +1,6 @@
 # GoPro HERO7 Black
 
-<!-- 카메라 제품 사진: images/camera.jpg 추가 시 아래 주석 해제 -->
-<!-- <img src="images/camera.jpg" width="360"> -->
+<img src="images/gopro_hero7_black.jpg" width="420">
 
 | 샘플 (공원) | 캘리브레이션 보드 |
 |---|---|
