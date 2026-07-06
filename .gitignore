@@ -1,0 +1,15 @@
+# raw footage & heavy pipeline outputs
+data/
+output/
+*.MP4
+*.mp4
+*.THM
+*.lrv
+
+# regenerable caches (re-run gopro_vio.charuco to rebuild)
+calibration*/detections_cache.npz
+calibration*/**/detections_cache.npz
+
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

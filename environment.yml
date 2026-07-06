@@ -1,0 +1,16 @@
+name: gopro-vio
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - numpy
+  - scipy
+  - matplotlib
+  - pandas
+  - tqdm
+  - pyyaml
+  - ffmpeg
+  - pip
+  - pip:
+      - opencv-contrib-python>=5.0
+      - rerun-sdk
