@@ -6,7 +6,7 @@ aligns the SLAM trajectory to that reference (rigid Umeyama on the shared
 video clock) and reports ATE in cm — i.e. how well close-range VIO tracks.
 
 Usage:
-  python -m gopro_vio.board_eval calibration/board_poses.npz \
+  python -m gopro_vio.board_eval cameras/<model>/calibration/board_poses.npz \
       output/GX014222/slam/camera_trajectory.csv -o output/GX014222/eval
 """
 from __future__ import annotations

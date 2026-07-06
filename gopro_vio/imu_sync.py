@@ -7,7 +7,7 @@
 - validation: gravity-in-board-frame consistency using the accelerometer
 
 Usage:
-  python -m gopro_vio.imu_sync calibration/board_poses.npz \
+  python -m gopro_vio.imu_sync cameras/<model>/calibration/board_poses.npz \
       output/GX014222/imu.csv -o calibration
 """
 from __future__ import annotations

@@ -160,8 +160,8 @@ def transcode(video: str, out_path: pathlib.Path, w: int, h: int,
 
 
 def run_slam(video: str, imu_csv: str, out_dir: str,
-             calib_json="calibration/intrinsics.json",
-             extr_json="calibration/imu_extrinsics.json",
+             calib_json="cameras/hero7black/calibration/intrinsics.json",
+             extr_json="cameras/hero7black/calibration/imu_extrinsics.json",
              target_w=960, n_features=2000, timeout_s=7200,
              ini_fast=20, min_fast=7, far_points=100.0, fps_div=2,
              start_s=0.0, extra_args=()):
@@ -221,8 +221,8 @@ def main():
     ap.add_argument("video")
     ap.add_argument("--imu", required=True, help="imu.csv from gopro_vio.extract")
     ap.add_argument("-o", "--out", required=True)
-    ap.add_argument("--calib", default="calibration/intrinsics.json")
-    ap.add_argument("--extr", default="calibration/imu_extrinsics.json")
+    ap.add_argument("--calib", default="cameras/hero7black/calibration/intrinsics.json")
+    ap.add_argument("--extr", default="cameras/hero7black/calibration/imu_extrinsics.json")
     ap.add_argument("--width", type=int, default=960)
     ap.add_argument("--features", type=int, default=2000)
     ap.add_argument("--ini-fast", type=int, default=20)
