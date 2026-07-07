@@ -69,6 +69,44 @@ ATE **RMSE 1.23 cm** (rigid) / 0.47 cm (similarity, 스케일 계수 1.067)
 **야외 드리프트** (VID_528, 399 m, 루프 클로저 미발동 = 순수 오도메트리):
 재방문 일관성 중앙값 1.82 m, 수직 드리프트 0.8 m (0.2%)
 
+## 웹캠 모드 (UVC) — VLA 롤아웃용
+
+USB 연결 시 표준 UVC로 인식됩니다 (Ubuntu 드라이버 불필요):
+
+```
+/dev/v4l/by-id/usb-Arashi_Vision_Insta360_Ace_Pro_2_0001-video-index0
+```
+
+| 항목 | 웹캠 모드 | 녹화 모드 |
+|---|---|---|
+| 포맷 | MJPG 640×360 / 1280×720 / **1920×1080 @30fps** (+H.264 1080p), 전부 16:9 | 2688×2016 4:3 @59.94 |
+| **FOV (실측)** | **H 114.3° / V 70.0° / D 126.7°** | H 130.1° / V 104.0° / D 152.3° |
+| 왜곡 | **부분 디워핑** (KB4로 모델링, RMS 0.28 px) | fisheye 원본 |
+| IMU | **없음** (UVC에 IMU 채널 없음 — 텔레메트리는 녹화 파일 전용) | 994 Hz |
+
+캘리브레이션: `calibration/webcam/` (보드 영상 2편 병합 — 중심부+가장자리,
+커버리지 55/80셀, 전 프레임 재투영 0.35 px).
+
+### 학습↔롤아웃 도메인 정렬 (remap)
+
+웹캠 FOV ⊂ 녹화 FOV이므로 **녹화 영상을 웹캠 기하로 정확히 변환**할 수 있습니다
+(같은 렌즈의 두 투영 모델 간 픽셀 단위 재투영):
+
+```bash
+python -m gopro_vio.remap data/acepro2/VID_..._528.mp4 \
+    --src-calib cameras/acepro2/calibration/v527/intrinsics.json \
+    --dst-calib cameras/acepro2/calibration/webcam/intrinsics.json \
+    -o output/acepro2_528/webcam_view.mp4 --fps-div 2
+```
+
+폐루프 검증: 리매핑된 녹화 영상의 ChArUco 코너가 웹캠 캘리브레이션과
+**0.55 px** 이내로 일치 — 기하 도메인 갭이 캘리브레이션 오차 수준으로 닫힘.
+VLA 학습 데이터는 이 변환을 거치면 롤아웃 UVC 스트림과 동일 기하가 됩니다
+(잔여 갭은 노출/색처리 등 포토메트릭 요소).
+
+주의: 웹캠 모드는 IMU가 없으므로 VIO는 불가 — 이미지 관측만 쓰는
+정책 롤아웃 전용입니다.
+
 ## HERO7 대비
 
 | | Ace Pro 2 | HERO7 Black |

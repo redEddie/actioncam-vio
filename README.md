@@ -10,7 +10,8 @@ MP4 ─┬─> IMU 추출        gopro_vio.extract (GPMF) / gopro_vio.insta360 (
      ├─> IMU-카메라 정렬  gopro_vio.imu_sync  (시간 오프셋 + R_imu_cam + 중력 검증)
      ├─> VIO             gopro_vio.slam  (ORB-SLAM3 mono-inertial, docker)
      ├─> 평가            gopro_vio.board_eval  (ChArUco 기준 근거리 ATE)
-     └─> 시각화          gopro_vio.viz / rerun_viz / map_viz / sphere_viz
+     ├─> 시각화          gopro_vio.viz / rerun_viz / map_viz / sphere_viz
+     └─> 도메인 정렬      gopro_vio.remap  (녹화→웹캠/롤아웃 기하 변환, VLA용)
 ```
 
 ## 지원 카메라

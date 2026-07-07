@@ -188,9 +188,22 @@ def board_poses(dets, board, K, D):
         obj = obj_all[d["ids"]].astype(np.float64)
         pts = d["corners"].reshape(-1, 1, 2).astype(np.float64)
         und = cv2.fisheye.undistortPoints(pts, K, D).reshape(-1, 2)
-        ok, rvec, tvec = cv2.solvePnP(obj, und, np.eye(3), None,
-                                      flags=cv2.SOLVEPNP_ITERATIVE)
-        if not ok:
+        # planar board -> two-fold pose ambiguity at grazing/partial views;
+        # IPPE returns both solutions, keep the lower-reprojection one
+        ok, rvecs, tvecs, errs = cv2.solvePnPGeneric(
+            obj, und.reshape(-1, 1, 2), np.eye(3), None,
+            flags=cv2.SOLVEPNP_IPPE)
+        if not ok or len(rvecs) == 0:
+            continue
+        best = int(np.argmin(np.asarray(errs).ravel()))
+        rvec, tvec = rvecs[best], tvecs[best]
+        # near-collinear partial views (frame edges) are unobservable no
+        # matter the solver — gate on reprojection error instead of saving
+        # poisoned poses (they would corrupt imu_sync angular velocities)
+        proj, _ = cv2.fisheye.projectPoints(
+            obj.reshape(1, -1, 3), rvec, tvec, K, D.reshape(4, 1))
+        err = np.linalg.norm(proj.reshape(-1, 2) - d["corners"], axis=1)
+        if err.mean() > 3.0:
             continue
         poses.append((d["frame"], d["t"], rvec.ravel(), tvec.ravel(),
                       len(d["ids"])))
