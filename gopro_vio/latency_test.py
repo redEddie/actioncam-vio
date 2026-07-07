@@ -114,6 +114,8 @@ def main():
 
     t0 = time.monotonic()
     lat = []
+    n_frames = n_markers = 0
+    last_frame = None
     print("카메라가 화면 전체를 보도록 놓으세요. 측정 중... (q로 조기 종료)")
     while time.monotonic() - t0 < args.seconds:
         t_ms = int((time.monotonic() - t0) * 1000) & ((1 << BITS) - 1)
@@ -124,6 +126,11 @@ def main():
         t_arr = (time.monotonic() - t0) * 1000
         if not ok:
             continue
+        n_frames += 1
+        last_frame = frame
+        c_, i_, _ = det.detectMarkers(frame)
+        if i_ is not None and len(i_) >= 4:
+            n_markers += 1
         seen = decode_strip(frame, det)
         if seen is None:
             continue
@@ -134,8 +141,11 @@ def main():
     cv2.destroyAllWindows()
 
     if len(lat) < 10:
-        raise SystemExit(f"디코딩된 샘플이 부족합니다({len(lat)}) — 패턴이 "
-                         "화면에 꽉 차게, 초점/거리 조정 후 재시도")
+        if last_frame is not None:
+            cv2.imwrite("/tmp/latency_debug_frame.jpg", last_frame)
+        raise SystemExit(
+            f"디코딩된 샘플이 부족합니다({len(lat)}) — 캡처 {n_frames}프레임 중 "
+            f"마커4개 검출 {n_markers}프레임. 마지막 프레임: /tmp/latency_debug_frame.jpg")
     lat = np.array(lat)
     print(f"\nsamples: {len(lat)}")
     print(f"latency: median {np.median(lat):.0f} ms | "
