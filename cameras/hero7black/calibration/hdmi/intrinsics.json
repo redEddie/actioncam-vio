@@ -1,0 +1,43 @@
+{
+  "model": "kannala_brandt (cv2.fisheye, KB4)",
+  "image_size": [
+    1920,
+    1080
+  ],
+  "fps": 60.0,
+  "K": [
+    [
+      642.8385940964721,
+      0.0,
+      952.3011632027507
+    ],
+    [
+      0.0,
+      643.6721616506801,
+      546.361234682104
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "D": [
+    0.048888723862845686,
+    0.009599221929144136,
+    0.006256632940643588,
+    -0.004851708646020271
+  ],
+  "rms_px": 0.394757193328282,
+  "n_views": 60,
+  "board": {
+    "dict": "DICT_ARUCO_ORIGINAL",
+    "layout": [
+      10,
+      8
+    ],
+    "square_size_m": 0.023,
+    "legacy": true
+  },
+  "video": "/tmp/claude-1000/-home-jeonchanwook-gopro-slam/a793cc45-dc33-4db0-9916-3b8c5c540f4e/scratchpad/hdmi_salvaged.avi"
+}

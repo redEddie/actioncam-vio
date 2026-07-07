@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # GoPro HDMI(캡처 동글) 녹화 파이프라인.
 #
+# 주의: MacroSilicon 동글은 USB2 대역폭이라 1080p60 MJPEG이 깨진다(프레임
+# 절반 손상 실측) — 1080p30이 안정 모드.
+#
 # 문제: MacroSilicon 동글은 USB 캡처를 열 때 HDMI 핫플러그를 발생시켜
 # GoPro가 그때서야 HDMI 출력을 초기화한다. 캡처를 닫았다 다시 열면
 # GoPro 상태(클린 출력/모니터 모드)가 리셋될 수 있다.
@@ -28,7 +31,7 @@ fi
 
 echo "start $(date +%s.%N)" > "$MARKS"
 ffmpeg -hide_banner -loglevel error \
-    -f v4l2 -input_format mjpeg -video_size 1920x1080 -framerate 60 -i "$DEV" \
+    -f v4l2 -input_format mjpeg -video_size 1920x1080 -framerate 30 -i "$DEV" \
     -c copy -map 0 -f tee \
     "[f=matroska]${OUT}|[f=nut:onfail=ignore]pipe:1" \
     | ffplay -loglevel error -window_title "GoPro HDMI preview (q: 프리뷰만 종료)" - &

@@ -73,12 +73,26 @@ def report(calib_dir: str, square_size=0.023):
                                "n": int(m.sum())})
 
     # --- FOV from the KB4 model ---
+    # dense-grid crossing search instead of brentq: the fitted polynomial can
+    # roll over beyond the sampled radius, leaving no bracketable root
     fx = K[0, 0]
+    th_grid = np.linspace(1e-3, 2.2, 4000)
+    r_grid = fx * kb4_theta_d(th_grid, D)
+    mono_end = int(np.argmax(np.diff(r_grid) <= 0)) or len(r_grid) - 1
     def solve_fov(target_px):
-        return 2*np.degrees(brentq(lambda t: fx*kb4_theta_d(t, D) - target_px,
-                                   0.05, 1.9))
+        rg = r_grid[:mono_end + 1]
+        if target_px > rg[-1]:
+            return None  # model rolls over before reaching this radius
+        return float(2 * np.degrees(np.interp(target_px, rg,
+                                              th_grid[:mono_end + 1])))
     fov = {"H": solve_fov(max(cx, W-1-cx)), "V": solve_fov(max(cy, H-1-cy)),
            "D": solve_fov(np.hypot(max(cx, W-1-cx), max(cy, H-1-cy)))}
+    fov_note = None
+    if any(v is None for v in fov.values()):
+        fov_note = ("model not valid out to the farthest corner "
+                    f"(monotonic to r={r_grid[mono_end]:.0f}px, "
+                    f"theta={np.degrees(th_grid[mono_end]):.1f}deg) — "
+                    "null entries exceed the calibrated/extrapolable range")
 
     out = {
         "image_size": [W, H],
@@ -89,7 +103,8 @@ def report(calib_dir: str, square_size=0.023):
         "radial_error": radial_err,
         "coverage_cells_gt100": f"{cov_cells}/{gw*gh}",
         "radial_coverage_p99": radial_p99,
-        "fov_deg": {k: round(v, 1) for k, v in fov.items()},
+        "fov_deg": {k: (round(v, 1) if v is not None else None) for k, v in fov.items()},
+        "fov_note": fov_note,
         "fx_fy_ratio": float(K[0, 0]/K[1, 1]),
         "principal_offset_px": [float(cx - W/2), float(cy - H/2)],
     }
@@ -104,14 +119,14 @@ def report(calib_dir: str, square_size=0.023):
     axes[1].set_xlabel("radius from principal point [px]")
     axes[1].set_ylabel("mean reproj error [px]"); axes[1].grid(alpha=0.3)
     axes[1].set_title("radial error profile")
-    th = np.linspace(0, np.radians(fov["D"])/2, 100)
+    th = np.linspace(0, np.radians(fov["D"] if fov["D"] else 120)/2, 100)
     axes[2].plot(np.degrees(th), fx*kb4_theta_d(th, D))
     axes[2].axhline(max(cx, W-1-cx), ls="--", c="gray", label="img half-width")
     axes[2].axhline(np.hypot(max(cx, W-1-cx), max(cy, H-1-cy)), ls=":",
                     c="gray", label="img corner")
     axes[2].set_xlabel("theta [deg]"); axes[2].set_ylabel("radius [px]")
     axes[2].legend(); axes[2].grid(alpha=0.3)
-    axes[2].set_title(f"KB4 curve — FOV H {fov['H']:.0f}° / D {fov['D']:.0f}°")
+    axes[2].set_title('KB4 curve — FOV H %s / D %s' % tuple((f'{v:.0f}°' if v else 'n/a') for v in (fov['H'], fov['D'])))
     fig.tight_layout()
     fig.savefig(d / "calib_report.png", dpi=130)
     print(json.dumps(out, indent=2))
