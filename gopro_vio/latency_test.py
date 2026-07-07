@@ -36,11 +36,19 @@ def make_display(t_ms: int, w=1280, h=720):
     for mid, (x, y) in pos.items():
         img[y:y+ms, x:x+ms] = cv2.cvtColor(
             cv2.aruco.generateImageMarker(d, mid, ms), cv2.COLOR_GRAY2BGR)
+    # local anchors flanking the strip: curved monitors + fisheye break a
+    # global planar homography, so markers 4/5 sit right next to the strip
+    yc = h // 2
+    am = 150
+    img[yc-am//2:yc+am//2, 40:40+am] = cv2.cvtColor(
+        cv2.aruco.generateImageMarker(d, 4, am), cv2.COLOR_GRAY2BGR)
+    img[yc-am//2:yc+am//2, w-40-am:w-40] = cv2.cvtColor(
+        cv2.aruco.generateImageMarker(d, 5, am), cv2.COLOR_GRAY2BGR)
     # binary strip: guard cells (black, white) + BITS payload cells, MSB first
     ncell = BITS + 2
     x0, x1 = 240, w - 240
     cw = (x1 - x0) // ncell
-    y0, y1 = h // 2 - 80, h // 2 + 80
+    y0, y1 = yc - 80, yc + 80
     cells = [1] + [(t_ms >> (BITS - 1 - b)) & 1 for b in range(BITS)] + [0]
     for b, bit in enumerate(cells):
         img[y0:y1, x0 + b*cw: x0 + (b+1)*cw] = 0 if bit else 255
@@ -52,16 +60,20 @@ def make_display(t_ms: int, w=1280, h=720):
 
 def decode_strip(frame, det):
     corners, ids, _ = det.detectMarkers(frame)
-    if ids is None or len(ids) < 4:
+    if ids is None:
         return None
     got = {int(i): c.reshape(4, 2) for i, c in zip(ids.ravel(), corners)}
-    if not all(k in got for k in (0, 1, 2, 3)):
+    if not (4 in got and 5 in got):
         return None
-    # marker outer corners -> display-space homography
+    # local homography from the two strip-flanking anchors (8 corners):
+    # spans only the strip neighborhood, tolerant to curved monitors/fisheye
     w, h = 1280, 720
-    ms = 140
-    src = np.float64([got[0][0], got[1][1], got[2][2], got[3][3]])
-    dst = np.float64([[40, 40], [w-40, 40], [w-40, h-40], [40, h-40]])
+    yc = h // 2
+    am = 150
+    def sq(x, y):  # display-space marker corners TL,TR,BR,BL
+        return [[x, y], [x+am, y], [x+am, y+am], [x, y+am]]
+    src = np.float64(np.vstack([got[4], got[5]]))
+    dst = np.float64(sq(40, yc-am//2) + sq(w-40-am, yc-am//2))
     Hm, _ = cv2.findHomography(src, dst)
     if Hm is None:
         return None
@@ -69,23 +81,33 @@ def decode_strip(frame, det):
     ncell = BITS + 2
     x0, x1 = 240, w - 240
     cw = (x1 - x0) // ncell
-    yc = h // 2
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     samples = []
     for b in range(ncell):
         cx = x0 + b*cw + cw/2
         p = inv @ np.array([cx, yc, 1.0])
-        u, v = p[0]/p[2], p[1]/p[2]
-        if not (0 <= u < frame.shape[1]-1 and 0 <= v < frame.shape[0]-1):
+        u, v = int(p[0]/p[2]), int(p[1]/p[2])
+        if not (2 <= u < frame.shape[1]-2 and 2 <= v < frame.shape[0]-2):
             return None
-        samples.append(int(gray[int(v), int(u)]))
+        samples.append(int(gray[v-2:v+3, u-2:u+3].mean()))
     black, white = samples[0], samples[-1]    # guard cells
     if white - black < 40:                    # strip not actually visible
         return None
-    thr = (black + white) / 2
+    # strict per-cell classification: HDMI->USB converters can blend two
+    # consecutive frames (double-exposure of two patterns); changed bits
+    # then read mid-gray — reject such frames instead of mis-decoding
+    span = white - black
+    dark_thr = black + 0.3 * span
+    bright_thr = white - 0.3 * span
     val = 0
     for s in samples[1:-1]:
-        val = (val << 1) | (1 if s < thr else 0)
+        if s < dark_thr:
+            bit = 1
+        elif s > bright_thr:
+            bit = 0
+        else:
+            return None                        # blended/ambiguous frame
+        val = (val << 1) | bit
     return val
 
 
@@ -95,6 +117,14 @@ def main():
     ap.add_argument("--size", default="1920x1080")
     ap.add_argument("--fps", type=int, default=30)
     ap.add_argument("--seconds", type=float, default=20)
+    ap.add_argument("--setup", action="store_true",
+                    help="측정 전 셋업 단계: 라이브 프리뷰를 보여주고 (장치는 "
+                         "계속 열린 채 — HDMI 핫플러그 리셋 방지) 카메라 설정/"
+                         "조준을 마친 뒤 프리뷰 창에서 Space/Enter로 측정 시작")
+    ap.add_argument("--setup-timeout", type=float, default=300)
+    ap.add_argument("--hold-ms", type=float, default=0,
+                    help="패턴을 N ms 동안 유지 (프레임 블렌딩이 심한 캡처 경로용; "
+                         "측정값 = 지연 + 패턴 나이(0..N 균등) → min이 지연의 추정치)")
     args = ap.parse_args()
     W, H = map(int, args.size.split("x"))
 
@@ -108,6 +138,31 @@ def main():
         raise SystemExit(f"cannot open {args.device}")
 
     det = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(DICT))
+
+    if args.setup:
+        # phase 1: keep the device streaming (GoPro HDMI stays initialized),
+        # show what the capture card sees; advance with Space/Enter in-window
+        print("[셋업] 카메라 설정(클린 HDMI/모니터 모드) 후 카메라를 모니터로 "
+              "조준하고, 프리뷰 창에서 Space 또는 Enter를 누르세요.")
+        cv2.namedWindow("setup_preview", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("setup_preview", 960, 540)
+        t_setup = time.monotonic()
+        while time.monotonic() - t_setup < args.setup_timeout:
+            ok, frame = cap.read()
+            if not ok:
+                continue
+            disp = frame.copy()
+            cv2.putText(disp, "SETUP: Space/Enter = start measurement",
+                        (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (0, 255, 0), 3)
+            cv2.imshow("setup_preview", disp)
+            k = cv2.waitKey(1) & 0xFF
+            if k in (13, 32):
+                break
+            if k == ord('q'):
+                raise SystemExit("셋업 단계에서 종료됨")
+        cv2.destroyWindow("setup_preview")
+        print("[셋업 완료] 측정 시작")
+
     cv2.namedWindow("latency_pattern", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("latency_pattern", cv2.WND_PROP_FULLSCREEN,
                           cv2.WINDOW_FULLSCREEN)
@@ -117,8 +172,13 @@ def main():
     n_frames = n_markers = 0
     last_frame = None
     print("카메라가 화면 전체를 보도록 놓으세요. 측정 중... (q로 조기 종료)")
+    held_val, held_until = None, -1.0
     while time.monotonic() - t0 < args.seconds:
-        t_ms = int((time.monotonic() - t0) * 1000) & ((1 << BITS) - 1)
+        now_ms = (time.monotonic() - t0) * 1000
+        if held_val is None or now_ms >= held_until:
+            held_val = int(now_ms) & ((1 << BITS) - 1)
+            held_until = now_ms + args.hold_ms
+        t_ms = held_val if args.hold_ms > 0 else int(now_ms) & ((1 << BITS) - 1)
         cv2.imshow("latency_pattern", make_display(t_ms))
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -147,10 +207,13 @@ def main():
             f"디코딩된 샘플이 부족합니다({len(lat)}) — 캡처 {n_frames}프레임 중 "
             f"마커4개 검출 {n_markers}프레임. 마지막 프레임: /tmp/latency_debug_frame.jpg")
     lat = np.array(lat)
-    print(f"\nsamples: {len(lat)}")
-    print(f"latency: median {np.median(lat):.0f} ms | "
-          f"p10 {np.percentile(lat,10):.0f} | p90 {np.percentile(lat,90):.0f} | "
-          f"mean {lat.mean():.0f} ms")
+    print(f"\nsamples: {len(lat)} (캡처 {n_frames} 중)")
+    print(f"latency(raw): median {np.median(lat):.0f} ms | "
+          f"min {lat.min():.0f} | p10 {np.percentile(lat,10):.0f} | "
+          f"p90 {np.percentile(lat,90):.0f}")
+    if args.hold_ms > 0:
+        print(f"hold {args.hold_ms:.0f} ms 보정: latency ≈ min {lat.min():.0f} ms "
+              f"~ median-보정 {np.median(lat)-args.hold_ms/2:.0f} ms")
     print("(모니터 응답시간 ~10-20 ms 포함; 표시 루프 양자화 ±1프레임)")
 
 
