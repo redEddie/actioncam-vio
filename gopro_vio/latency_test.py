@@ -147,6 +147,7 @@ def main():
         cv2.namedWindow("setup_preview", cv2.WINDOW_NORMAL)
         cv2.resizeWindow("setup_preview", 960, 540)
         t_setup = time.monotonic()
+        confirmed = False
         while time.monotonic() - t_setup < args.setup_timeout:
             ok, frame = cap.read()
             if not ok:
@@ -157,10 +158,14 @@ def main():
             cv2.imshow("setup_preview", disp)
             k = cv2.waitKey(1) & 0xFF
             if k in (13, 32):
+                confirmed = True
                 break
             if k == ord('q'):
                 raise SystemExit("셋업 단계에서 종료됨")
         cv2.destroyWindow("setup_preview")
+        if not confirmed:
+            raise SystemExit("셋업 확인(Space/Enter) 없이 타임아웃 — 측정을 "
+                             "시작하지 않고 종료합니다 (무인 측정 방지)")
         print("[셋업 완료] 측정 시작")
 
     cv2.namedWindow("latency_pattern", cv2.WINDOW_NORMAL)
@@ -171,6 +176,10 @@ def main():
     lat = []
     n_frames = n_markers = 0
     last_frame = None
+    raw_path = "/tmp/latency_raw.avi"
+    raw_times = []
+    vw = cv2.VideoWriter(raw_path, cv2.VideoWriter_fourcc(*"MJPG"),
+                         args.fps, (W, H))
     print("카메라가 화면 전체를 보도록 놓으세요. 측정 중... (q로 조기 종료)")
     held_val, held_until = None, -1.0
     while time.monotonic() - t0 < args.seconds:
@@ -188,6 +197,8 @@ def main():
             continue
         n_frames += 1
         last_frame = frame
+        vw.write(frame)
+        raw_times.append((t_arr, t_ms))
         c_, i_, _ = det.detectMarkers(frame)
         if i_ is not None and len(i_) >= 4:
             n_markers += 1
@@ -198,6 +209,12 @@ def main():
         if 0 < d < 3000:
             lat.append(d)
     cap.release()
+    vw.release()
+    np.savetxt("/tmp/latency_raw_times.csv",
+               np.array(raw_times), delimiter=",",
+               header="t_arrival_ms,t_displayed_ms", comments="")
+    print(f"원시 캡처 저장: {raw_path} + /tmp/latency_raw_times.csv "
+          "(실패해도 오프라인 재분석 가능)")
     cv2.destroyAllWindows()
 
     if len(lat) < 10:
