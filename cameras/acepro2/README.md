@@ -69,6 +69,17 @@ ATE **RMSE 1.23 cm** (rigid) / 0.47 cm (similarity, 스케일 계수 1.067)
 **야외 드리프트** (VID_528, 399 m, 루프 클로저 미발동 = 순수 오도메트리):
 재방문 일관성 중앙값 1.82 m, 수직 드리프트 0.8 m (0.2%)
 
+### UMI 그리퍼 검증 (2026-07-07)
+
+그리퍼에 장착해 화면 하단 36%를 마스킹한 상태로 **데모 4/4편(여닫음·
+pick&place·던지기·혼합) 100% 추적, 전부 단일 세그먼트**. 그리퍼 장착
+맵(id13 앵커, 태그 잔차 0.25 cm) + 130° FOV 조합의 효과 — 상세 분석과
+FOV 크롭 통제 실험은 [UMI 검증 문서](../../docs/umi_gripper_pipeline.md).
+
+![그리퍼 맵 월드 정렬](results/umi/world_555_grippermap.png)
+![던지기 데모 월드 궤적](results/umi/world_553_throw.png)
+![그리퍼 너비 신호](results/umi/gripper_width_552.png)
+
 ## 웹캠 모드 (UVC) — VLA 롤아웃용
 
 USB 연결 시 표준 UVC로 인식됩니다 (Ubuntu 드라이버 불필요):

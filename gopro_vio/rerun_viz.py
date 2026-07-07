@@ -55,6 +55,10 @@ def main():
                     help="thumbnail width; pinhole intrinsics are scaled to "
                          "match so images fill the frustum image plane")
     ap.add_argument("--out", default=None, help=".rrd output path")
+    ap.add_argument("--traj-radius-cm", type=float, default=0.2,
+                    help="trajectory line radius in cm (scene units)")
+    ap.add_argument("--kf-radius-cm", type=float, default=0.5,
+                    help="keyframe sphere radius in cm (scene units)")
     args = ap.parse_args()
 
     d = pathlib.Path(args.slam_dir)
@@ -80,9 +84,13 @@ def main():
             # vertical axis = smallest extent
             up = int(np.argmin(pts.max(0) - pts.min(0)))
             colors = height_colors(-pts[:, up])
-        rr.log("world/map", rr.Points3D(pts, colors=colors, radii=0.02),
+        # scene-size-adaptive point radius: ~2 mm on a tabletop map, capped
+        # at the old 2 cm for outdoor-scale maps
+        lo, hi = np.percentile(pts, [2, 98], axis=0)
+        pt_radius = float(np.clip(np.linalg.norm(hi - lo) * 0.003, 0.002, 0.02))
+        rr.log("world/map", rr.Points3D(pts, colors=colors, radii=pt_radius),
                static=True)
-        print(f"[rerun] map points: {len(pts)}")
+        print(f"[rerun] map points: {len(pts)} (radius {pt_radius*1000:.1f} mm)")
 
     # --- keyframes (static) ---
     kf_csv = d / "keyframes.csv"
@@ -90,7 +98,8 @@ def main():
         kf = pd.read_csv(kf_csv)
         rr.log("world/keyframes",
                rr.Points3D(kf[["x", "y", "z"]].to_numpy(),
-                           colors=[255, 255, 255], radii=0.05), static=True)
+                           colors=[255, 255, 255],
+                           radii=args.kf_radius_cm / 100), static=True)
         print(f"[rerun] keyframes: {len(kf)}")
 
     # --- trajectory: static line + animated camera ---
@@ -102,7 +111,8 @@ def main():
         cam = df[~lost]
         xyz = cam[["x", "y", "z"]].to_numpy()
         rr.log("world/trajectory",
-               rr.LineStrips3D([xyz], colors=[255, 40, 40], radii=0.02),
+               rr.LineStrips3D([xyz], colors=[255, 40, 40],
+                               radii=args.traj_radius_cm / 100),
                static=True)
         print(f"[rerun] trajectory: {len(cam)} poses")
 

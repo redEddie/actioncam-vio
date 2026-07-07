@@ -45,6 +45,16 @@ ATE **RMSE 1.88 cm** (rigid) / 0.34 cm (similarity, 스케일 계수 1.126)
 
 ![근거리 ATE](results/board_eval_GX014222.png)
 
+### UMI 그리퍼 검증 (2026-07-07)
+
+그리퍼 장착 + 화면 하단 33% 마스킹 상태로 여닫음/pick&place 데모 **99.5/100%
+추적**(단일 세그먼트), id13 태그 월드 앵커 잔차 0.23 cm. 한계: 던지기급
+고속 모션은 50%로 조각남(블러/198 Hz IMU — 매칭된 맵으로도 회복 안 됨).
+상세는 [UMI 검증 문서](../../docs/umi_gripper_pipeline.md).
+
+![맵 영상 월드 정렬](results/umi/world_GX014229_map.png)
+![pick&place 월드 궤적](results/umi/world_GX014233_pickplace.png)
+
 ## 알려진 한계
 
 - 가속도계 -3.3% 스케일 오차 → IMU 스케일 계수 1.126으로 나타남

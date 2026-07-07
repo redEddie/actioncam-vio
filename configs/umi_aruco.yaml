@@ -1,0 +1,17 @@
+# UMI 그리퍼 ArUco 설정 (rs_slam/umi_pipeline/configs/aruco_config.yaml 계승)
+# 마커 id/크기가 바뀌면 이 파일만 수정하면 된다.
+aruco_dict: DICT_4X4_50
+
+# marker id -> 한 변 실측 길이 (m)
+marker_size_map:
+  default: 0.10
+  13: 0.10      # 월드 원점 태그 (맵 앵커, --init_tag_size와 일치시킬 것)
+  0: 0.018      # 그리퍼 손가락 마커
+  1: 0.018      # 그리퍼 손가락 마커
+
+origin_tag_id: 13
+
+# 그리퍼 너비: 두 손가락 마커의 카메라 x좌표 차 - offset.
+# 좌/우는 영상 내 x위치로 자동 판별. offset은 완전-닫힘 원시값으로 나중에 튜닝.
+gripper_finger_ids: [0, 1]
+gripper_width_offset_m: 0.0

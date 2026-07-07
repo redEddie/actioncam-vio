@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import shutil
 import subprocess
 
 import numpy as np
@@ -164,7 +165,7 @@ def run_slam(video: str, imu_csv: str, out_dir: str,
              extr_json="cameras/hero7black/calibration/imu_extrinsics.json",
              target_w=960, n_features=2000, timeout_s=7200,
              ini_fast=20, min_fast=7, far_points=100.0, fps_div=2,
-             start_s=0.0, extra_args=()):
+             start_s=0.0, mask_png=None, load_map=None, extra_args=()):
     out = pathlib.Path(out_dir).absolute()
     out.mkdir(parents=True, exist_ok=True)
     calib = json.loads(pathlib.Path(calib_json).read_text())
@@ -182,10 +183,22 @@ def run_slam(video: str, imu_csv: str, out_dir: str,
     slam_video = out / f"video_slam{tag}.mp4"
     transcode(video, slam_video, w, h, fps_div, start_s)
     video = slam_video
+
+    mounts, opt_args = [], []
+    if mask_png:
+        # nonzero mask pixels are blacked out before feature extraction
+        # (binary resizes the mask to the processing resolution itself)
+        shutil.copy(mask_png, out / "slam_mask.png")
+        opt_args += ["--mask_img", "/work/slam_mask.png"]
+    if load_map:
+        m = pathlib.Path(load_map).absolute()
+        mounts += ["-v", f"{m.parent}:/map:ro"]
+        opt_args += ["--load_map", f"/map/{m.name}"]
     cmd = [
         "docker", "run", "--rm",
         "-v", f"{out}:/work",
         "-v", f"{video}:/work/video.mp4:ro",
+        *mounts,
         DOCKER_IMAGE,
         "/ORB_SLAM3/Examples/Monocular-Inertial/gopro_slam",
         "--vocabulary", "/ORB_SLAM3/Vocabulary/ORBvoc.txt",
@@ -195,6 +208,7 @@ def run_slam(video: str, imu_csv: str, out_dir: str,
         "--output_trajectory_csv", "/work/camera_trajectory.csv",
         "--output_trajectory_tum", "/work/camera_trajectory.tum",
         "--save_map", "/work/map_atlas.osa",
+        *opt_args,
         *extra_args,
     ]
     print("[slam]", " ".join(cmd))
@@ -232,12 +246,17 @@ def main():
                     help="temporal subsampling divisor (2 -> 29.97 fps)")
     ap.add_argument("--start-s", type=float, default=0.0,
                     help="skip the first N seconds of video+IMU")
+    ap.add_argument("--mask", help="png mask; nonzero pixels excluded from "
+                    "tracking (UMI gripper mask)")
+    ap.add_argument("--load-map", help="map_atlas.osa to localize against "
+                    "(UMI map+relocalize workflow)")
     args, extra = ap.parse_known_args()
     rc = run_slam(args.video, args.imu, args.out, args.calib, args.extr,
                   args.width, args.features,
                   ini_fast=args.ini_fast, min_fast=args.min_fast,
                   far_points=args.far_points, fps_div=args.fps_div,
-                  start_s=args.start_s, extra_args=extra)
+                  start_s=args.start_s, mask_png=args.mask,
+                  load_map=args.load_map, extra_args=extra)
     raise SystemExit(rc)
 
 
