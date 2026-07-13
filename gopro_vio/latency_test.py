@@ -18,6 +18,8 @@ Usage (point the camera at the monitor so the whole pattern is visible):
 from __future__ import annotations
 
 import argparse
+import queue
+import threading
 import time
 
 import cv2
@@ -25,6 +27,40 @@ import numpy as np
 
 BITS = 24
 DICT = cv2.aruco.DICT_4X4_50
+
+
+class Grabber(threading.Thread):
+    """Drain the capture stream at full rate on a separate thread.
+
+    The measurement loop is slower than the stream (detect + encode take tens
+    of ms); reading in the same loop lets frames age in the driver queue and
+    inflates the measured latency by up to one loop period. This thread keeps
+    only the newest frame, timestamped at arrival, so the main loop always
+    consumes a fresh (<= 1 frame period old) image.
+    """
+
+    def __init__(self, cap):
+        super().__init__(daemon=True)
+        self.cap = cap
+        self.lock = threading.Lock()
+        self.frame, self.t, self.seq, self.n = None, 0.0, 0, 0
+        self.running = True
+
+    def run(self):
+        while self.running:
+            ok, f = self.cap.read()
+            t = time.monotonic()
+            if not ok:
+                continue
+            self.n += 1
+            with self.lock:
+                self.frame, self.t, self.seq = f, t, self.seq + 1
+
+    def latest(self, last_seq):
+        with self.lock:
+            if self.seq == last_seq or self.frame is None:
+                return None
+            return self.t, self.frame, self.seq
 
 
 def make_display(t_ms: int, w=1280, h=720):
@@ -125,11 +161,14 @@ def main():
     ap.add_argument("--hold-ms", type=float, default=0,
                     help="패턴을 N ms 동안 유지 (프레임 블렌딩이 심한 캡처 경로용; "
                          "측정값 = 지연 + 패턴 나이(0..N 균등) → min이 지연의 추정치)")
+    ap.add_argument("--fourcc", default="MJPG",
+                    help="캡처 픽셀 포맷 (예: MJPG, YUYV — 장치의 "
+                         "v4l2-ctl --list-formats-ext 참조)")
     args = ap.parse_args()
     W, H = map(int, args.size.split("x"))
 
     cap = cv2.VideoCapture(args.device, cv2.CAP_V4L2)
-    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*args.fourcc))
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, W)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, H)
     cap.set(cv2.CAP_PROP_FPS, args.fps)
@@ -172,16 +211,50 @@ def main():
     cv2.setWindowProperty("latency_pattern", cv2.WND_PROP_FULLSCREEN,
                           cv2.WINDOW_FULLSCREEN)
 
+    grab = Grabber(cap)
+    grab.start()
+
     t0 = time.monotonic()
     lat = []
-    n_frames = n_markers = 0
-    last_frame = None
+    stats = {"n_frames": 0, "n_markers": 0, "last_frame": None}
     raw_path = "/tmp/latency_raw.avi"
     raw_times = []
     vw = cv2.VideoWriter(raw_path, cv2.VideoWriter_fourcc(*"MJPG"),
                          args.fps, (W, H))
+
+    # heavy per-frame work (encode + detect + decode, tens of ms) runs on a
+    # worker thread so the display loop keeps repainting the pattern every few
+    # ms — otherwise the on-screen timestamp itself goes stale by one loop
+    # period and inflates the measurement.
+    q_frames: queue.Queue = queue.Queue(maxsize=4)
+    running = True
+
+    def worker():
+        while running or not q_frames.empty():
+            try:
+                t_arr, t_ms, frame = q_frames.get(timeout=0.2)
+            except queue.Empty:
+                continue
+            stats["n_frames"] += 1
+            stats["last_frame"] = frame
+            vw.write(frame)
+            raw_times.append((t_arr, t_ms))
+            c_, i_, _ = det.detectMarkers(frame)
+            if i_ is not None and len(i_) >= 4:
+                stats["n_markers"] += 1
+            seen = decode_strip(frame, det)
+            if seen is None:
+                continue
+            d = t_arr - seen
+            if 0 < d < 3000:
+                lat.append(d)
+
+    wk = threading.Thread(target=worker, daemon=True)
+    wk.start()
+
     print("카메라가 화면 전체를 보도록 놓으세요. 측정 중... (q로 조기 종료)")
     held_val, held_until = None, -1.0
+    seq = 0
     while time.monotonic() - t0 < args.seconds:
         now_ms = (time.monotonic() - t0) * 1000
         if held_val is None or now_ms >= held_until:
@@ -191,25 +264,27 @@ def main():
         cv2.imshow("latency_pattern", make_display(t_ms))
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-        ok, frame = cap.read()
-        t_arr = (time.monotonic() - t0) * 1000
-        if not ok:
+        got = grab.latest(seq)
+        if got is None:
             continue
-        n_frames += 1
-        last_frame = frame
-        vw.write(frame)
-        raw_times.append((t_arr, t_ms))
-        c_, i_, _ = det.detectMarkers(frame)
-        if i_ is not None and len(i_) >= 4:
-            n_markers += 1
-        seen = decode_strip(frame, det)
-        if seen is None:
-            continue
-        d = t_arr - seen
-        if 0 < d < 3000:
-            lat.append(d)
+        t_abs, frame, seq = got
+        t_arr = (t_abs - t0) * 1000
+        try:
+            q_frames.put_nowait((t_arr, t_ms, frame))
+        except queue.Full:
+            pass  # worker is behind; drop — freshness beats coverage here
+    grab.running = False
+    running = False
+    grab.join(timeout=2)
+    wk.join(timeout=5)
     cap.release()
     vw.release()
+    n_frames, n_markers = stats["n_frames"], stats["n_markers"]
+    last_frame = stats["last_frame"]
+    grab_fps = grab.n / max(time.monotonic() - t0, 1e-6)
+    if grab_fps < 0.9 * args.fps:
+        print(f"경고: 캡처 스레드 유효 {grab_fps:.1f} fps < 요청 {args.fps} — "
+              "장치가 요청 포맷을 못 내거나 시스템이 과부하일 수 있음")
     np.savetxt("/tmp/latency_raw_times.csv",
                np.array(raw_times), delimiter=",",
                header="t_arrival_ms,t_displayed_ms", comments="")

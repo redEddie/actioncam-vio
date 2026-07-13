@@ -61,20 +61,26 @@ ATE **RMSE 1.88 cm** (rigid) / 0.34 cm (similarity, 스케일 계수 1.126)
 - 무지 벽/파티션이 시야를 채우는 실내(전시홀)에서 맵 분절 — FOV 120°의 한계
 - 컨테이너의 구형 FFmpeg가 2.7K 원본을 못 읽음 → 사전 트랜스코딩 필수(파이프라인이 자동 처리)
 
-## HDMI 캡처 경로 (MacroSilicon 동글)
+## HDMI 캡처 경로 (AVerMedia GC553Pro)
 
-HERO7은 웹캠 모드가 없어 라이브 스트림은 HDMI→USB 캡처 동글 경유가 유일:
-`/dev/v4l/by-id/usb-MACROSILICON_USB3._0_capture-video-index0`, 녹화는
-`scripts/hdmi_record.sh` (장치 단일 오픈 유지 — 닫으면 핫플러그로 GoPro 리셋).
-
-실측 특성:
+HERO7은 웹캠 모드가 없어 라이브 스트림은 HDMI→USB 캡처 장치 경유가 유일.
+현행 장치는 **AVerMedia Live Gamer ULTRA S (GC553Pro)**:
+`/dev/v4l/by-id/usb-AVerMedia_Live_Gamer_ULTRA_S_GC553Pro_...-video-index0`.
 
 | 항목 | 값 |
 |---|---|
-| **종단 지연 (직접 측정, 720p60)** | **median 186 ms, p10 131 / p90 227** — Ace Pro 2(163 ms, 지터 40 ms)보다 중앙값 +23 ms, 지터 2.4배 |
-| 안정 포맷 | **720p@60 권장** — 60 fps 1:1 매핑으로 동글 프레임 블렌딩 없음. 1080p30은 인접 프레임 평균(이중상), 1080p60은 USB2 대역폭 초과로 프레임 손상 |
-| 기하 (4:3 모드 프리뷰) | **SuperView식 비선형 스트레치** — 방사대칭 모델 부적합 (calibration/hdmi는 중심부 근사). 네이티브 16:9 모드로 바꾸면 해소될 가능성 |
+| **종단 지연 (2026-07-13, 측정도구 v3, 615샘플)** | **median 111 ms (p10 94 / p90 131, 지터 37 ms)** → 롤아웃 보정 상수 **μ≈88 ms, σ≈14 ms** ([노이즈 모델](../../docs/observation_latency_model.md)) |
+| 권장 포맷 | **1080p60 YUYV(무압축)** — MJPG는 1080p240까지 지원. 구형 동글의 블렌딩/손상 문제 없음 |
+| **기하 (4:3 모드)** | **필러박스 4:3** — GoPro가 4:3 영상 양옆에 검은 보더를 넣어 16:9로 출력. 콘텐츠는 x=240..1679 (1440×1080, 정확히 4:3), 녹화 기하의 균일 ×0.5325 축소. **크롭 `frame[:, 240:1680]` 한 줄이면 녹화와 동일 기하** (녹화 K를 0.5325배로 스케일해 사용). 과거 "SuperView식 스트레치" 결론(MBF 시절 분석)은 폐기 |
 | 체감 지연 주의 | ffplay 등 뷰어의 표시 버퍼링이 0.3~0.5 s를 더해 보임 — 실제 캡처 지연과 구분할 것 |
+
+<details><summary>구형: MacroSilicon(MBF) 동글 기록 (교체됨)</summary>
+
+- 종단 지연 720p60: median 186 ms, p10 131 / p90 227 (측정도구 v1 — 수십 ms 과대 추정 포함)
+- USB2 대역폭 위장: 1080p30은 인접 프레임 블렌딩(이중상), 1080p60은 프레임 손상 → 720p60만 유효
+- 캡처를 닫으면 HDMI 핫플러그로 GoPro 상태 리셋 → `scripts/hdmi_record.sh`가 단일 오픈 유지로 우회 (GC553Pro에서는 미확인 — 재현 시 같은 스크립트 사용)
+
+</details>
 
 ## 사용법
 
