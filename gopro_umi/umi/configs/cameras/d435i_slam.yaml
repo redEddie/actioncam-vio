@@ -1,0 +1,26 @@
+# D435i recording profile for SLAM/MAPPING runs (lighter than the full demo profile).
+# IR stereo + IMU only, NO color -> ~half the USB/disk bandwidth, fewer dropped
+# frames, so ORB-SLAM3 keeps a single continuous map instead of fragmenting.
+# Use the full configs/cameras/d435i.yaml (with color) for demonstration recordings.
+
+device:
+  name: "D435I"
+  product_line: "D400"
+
+has_imu: true
+slam_mode: "stereo_inertial"
+slam_config: "slam/configs/d435i_stereo_inertial.yaml"
+
+streams:
+  infrared:
+    - {index: 1, width: 640, height: 480, format: "y8", fps: 30}   # left
+    - {index: 2, width: 640, height: 480, format: "y8", fps: 30}   # right
+  accel:
+    - {fps: 200}
+  gyro:
+    - {fps: 200}
+
+options:
+  stereo_module:
+    emitter_enabled: 0
+    global_time_enabled: 1

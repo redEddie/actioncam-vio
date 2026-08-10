@@ -1,0 +1,20 @@
+# D405 recording profile for SLAM/MAPPING (IR stereo only; D405 has NO IMU).
+# Close-range camera (~7-50cm), 18mm baseline. Use STEREO mode for SLAM.
+
+device:
+  name: "D405"
+  product_line: "D400"
+
+has_imu: false
+slam_mode: "stereo"
+slam_config: "slam/configs/d405_stereo.yaml"
+
+streams:
+  infrared:
+    - {index: 1, width: 640, height: 480, format: "y8", fps: 30}   # left
+    - {index: 2, width: 640, height: 480, format: "y8", fps: 30}   # right
+
+options:
+  # D405 has no IR projector emitter in the D435i sense; nothing to disable.
+  stereo_module:
+    global_time_enabled: 1

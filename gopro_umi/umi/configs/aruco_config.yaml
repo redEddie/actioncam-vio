@@ -1,0 +1,44 @@
+# ArUco marker configuration (matches UMI: real-stanford/universal_manipulation_interface)
+aruco_dict:
+  predefined: DICT_4X4_50
+
+# marker id -> physical side length in meters
+marker_size_map:
+  default: 0.16
+  # gripper finger markers (gripper-width measurement)
+  0: 0.008
+  1: 0.008
+  6: 0.008
+  7: 0.008
+  # gripper cube markers
+  2: 0.06
+  3: 0.06
+  4: 0.06
+  5: 0.06
+  8: 0.06
+  9: 0.06
+  10: 0.06
+  11: 0.06
+  # large table / world markers (origin)
+  12: 0.16
+  13: 0.10     # <-- world ORIGIN tag, reprinted at 100mm (was 160mm)
+  14: 0.16
+  15: 0.16
+  16: 0.16
+  17: 0.16
+  18: 0.16
+  19: 0.16
+
+origin_tag_id: 13
+
+# gripper finger markers (8mm, on finger bases) for gripper-width measurement
+gripper_left_finger_id: 6
+gripper_right_finger_id: 7
+# actual_width = (right_x - left_x) - offset.  raw reads +1.0cm at full close,
+# so offset = 0.010 maps full-close -> 0. (parallel-jaw -> scale = 1.0)
+gripper_width_offset_m: 0.010
+
+# T_cam_tcp calibration: marker-center -> fingertip offset for the RIGHT finger,
+# in the marker frame. Marker axes == gripper axes here (+x right, +y fwd, +z up),
+# so this equals the gripper-frame offset. meters. Left = mirror (x sign flips).
+gripper_marker_to_tip_right_m: [-0.005059, 0.070698, -0.023]

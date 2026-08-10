@@ -1,0 +1,40 @@
+diff --git a/python/run_mynteye_calibration.py b/python/run_mynteye_calibration.py
+index decb416..76b7756 100644
+--- a/python/run_mynteye_calibration.py
++++ b/python/run_mynteye_calibration.py
+@@ -70,7 +70,7 @@ def main():
+     cam_calib_file_path = pjoin(cam_calib_path, cam_calib)
+     calib_dataset_json = cam_calib_file_path+".json"
+ 
+-    aruco_detector_params = pjoin(args.path_to_src, 'resource', 'charuco_detector_params.yml')
++    aruco_detector_params = pjoin(path_to_src, 'resource', 'charuco_detector_params.yml')
+     checker_size_m = str(args.checker_size_m)
+     imu_cam_calibration_json = pjoin(cam_imu_path, "imu_to_cam_calibration.json")
+ 
+@@ -157,7 +157,7 @@ def main():
+     # #
+     # # 4. Estimating IMU biases
+     # #   
+-    # py_imu_file = pjoin(args.path_to_src,"python","get_imu_biases.py")
++    # py_imu_file = pjoin(path_to_src,"python","get_imu_biases.py")
+     # print("==================================================================")
+     # print("Estimating IMU biases.")
+     # print("==================================================================")
+@@ -193,7 +193,7 @@ def main():
+     #
+     # 6. Estimate spline error weighting parameters
+     #   
+-    py_spline_file = pjoin(args.path_to_src,"python","get_sew_for_dataset.py")
++    py_spline_file = pjoin(path_to_src,"python","get_sew_for_dataset.py")
+     print("==================================================================")
+     print("Estimating Spline error weighting and knot spacing.")
+     print("==================================================================")
+@@ -253,7 +253,7 @@ def main():
+     #
+     # 9. Print results
+     #   
+-    py_spline_file = pjoin(args.path_to_src,"python","print_result_stats.py")
++    py_spline_file = pjoin(path_to_src,"python","print_result_stats.py")
+     print("==================================================================")
+     print("Print results.")
+     print("==================================================================")

@@ -1,0 +1,27 @@
+# Camera profile: Intel RealSense D405  (PLACEHOLDER — confirm on hardware with rs-enumerate-devices)
+# IMPORTANT: the D405 has NO IMU -> no inertial SLAM. Short-range (~7-50cm) RGBD camera.
+# SLAM must run in pure-visual stereo or RGB-D mode (no IMU initialization path).
+
+device:
+  name: "D405"            # TODO verify exact camera_info.name (e.g. "Intel RealSense D405")
+  product_line: "D400"
+
+has_imu: false
+slam_mode: "rgbd"          # rgbd | stereo  (NOT stereo_inertial — no IMU)
+slam_config: "slam/configs/d405_rgbd.yaml"               # TODO create with D405 intrinsics
+
+streams:
+  color:
+    - {index: 0, width: 640, height: 480, format: "bgr8", fps: 30} # TODO confirm
+  depth:
+    - {index: 0, width: 640, height: 480, format: "z16", fps: 30}  # TODO confirm
+  # D405 also exposes infrared via its stereo imagers; enable if using stereo mode:
+  # infrared:
+  #   - {index: 1, width: 640, height: 480, format: "y8", fps: 30}  # TODO confirm
+  #   - {index: 2, width: 640, height: 480, format: "y8", fps: 30}  # TODO confirm
+  # NO accel/gyro: D405 has no motion module.
+
+options:
+  # D405 has no IR projector emitter option in the usual sense; depth uses ambient/own.
+  stereo_module:
+    global_time_enabled: 1

@@ -1,0 +1,33 @@
+# Camera profile: Intel RealSense D435i  (VERIFIED on hardware, SN 317622072663, FW 5.17.3.10)
+# Drives record.py (which streams to enable) and selects the ORB-SLAM3 config.
+
+device:
+  name: "D435I"            # case-insensitive substring match against camera_info.name
+  product_line: "D400"
+
+has_imu: true
+slam_mode: "stereo_inertial"          # stereo_inertial | stereo | rgbd
+slam_config: "slam/configs/d435i_stereo_inertial.yaml"
+
+# Streams enabled when recording to .bag.
+# IR stereo (idx 1/2) + IMU drive the SLAM; color is the demonstration observation + ArUco.
+streams:
+  infrared:
+    - {index: 1, width: 640, height: 480, format: "y8", fps: 30}   # left
+    - {index: 2, width: 640, height: 480, format: "y8", fps: 30}   # right
+  color:
+    - {index: 0, width: 640, height: 480, format: "bgr8", fps: 30}
+  accel:
+    - {fps: 200}            # available: 100 / 200 / 400
+  gyro:
+    - {fps: 200}            # available: 200 / 400
+  # depth omitted: we use stereo-inertial, not RGB-D, on D435i.
+  # NOTE: depth needs the IR emitter ON, which conflicts with IR-stereo SLAM (emitter OFF).
+  # depth:
+  #   - {index: 0, width: 640, height: 480, format: "z16", fps: 30}
+
+# Sensor options applied at record start.
+options:
+  stereo_module:
+    emitter_enabled: 0      # IR projector OFF: dot pattern degrades stereo feature matching
+    global_time_enabled: 1

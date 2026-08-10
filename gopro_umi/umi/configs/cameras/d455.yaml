@@ -1,0 +1,27 @@
+# Camera profile: Intel RealSense D455  (PLACEHOLDER — confirm on hardware with rs-enumerate-devices)
+# D455 has an IMU (BMI055) and a wider 95mm stereo baseline than the D435i.
+# Same D400-family stream API, so this mirrors the D435i profile until verified.
+
+device:
+  name: "D455"            # TODO verify exact camera_info.name (e.g. "Intel RealSense D455")
+  product_line: "D400"
+
+has_imu: true
+slam_mode: "stereo_inertial"
+slam_config: "slam/configs/d455_stereo_inertial.yaml"   # TODO create with D455 intrinsics/baseline
+
+streams:
+  infrared:
+    - {index: 1, width: 640, height: 480, format: "y8", fps: 30}   # TODO confirm
+    - {index: 2, width: 640, height: 480, format: "y8", fps: 30}   # TODO confirm
+  color:
+    - {index: 0, width: 640, height: 480, format: "bgr8", fps: 30} # TODO confirm
+  accel:
+    - {fps: 200}           # TODO confirm available rates
+  gyro:
+    - {fps: 200}           # TODO confirm available rates
+
+options:
+  stereo_module:
+    emitter_enabled: 0
+    global_time_enabled: 1

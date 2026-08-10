@@ -1,0 +1,165 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 016e743..1d99306 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -12,14 +12,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3")
+ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -march=native")
+ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
+ 
+-# Check C++11 or C++0x support
++# Check C++14 support (Ubuntu 22.04 / gcc-11 + Pangolin v0.8 require C++14)
+ include(CheckCXXCompilerFlag)
+-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
++CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+ CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+-if(COMPILER_SUPPORTS_CXX11)
+-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
++if(COMPILER_SUPPORTS_CXX14)
++   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+    add_definitions(-DCOMPILEDWITHC11)
+-   message(STATUS "Using flag -std=c++11.")
++   message(STATUS "Using flag -std=c++14.")
+ elseif(COMPILER_SUPPORTS_CXX0X)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+    add_definitions(-DCOMPILEDWITHC0X)
+diff --git a/Thirdparty/Sophus/CMakeLists.txt b/Thirdparty/Sophus/CMakeLists.txt
+index 933445b..d7fe003 100644
+--- a/Thirdparty/Sophus/CMakeLists.txt
++++ b/Thirdparty/Sophus/CMakeLists.txt
+@@ -10,7 +10,7 @@ if(NOT CMAKE_BUILD_TYPE)
+   set(CMAKE_BUILD_TYPE Release)
+ endif()
+ 
+-set(CMAKE_CXX_STANDARD 11)
++set(CMAKE_CXX_STANDARD 14)
+ 
+ # Set compiler specific settings (FixMe: Should not cmake do this for us automatically?)
+ IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+@@ -20,7 +20,7 @@ IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+ ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    SET(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
+    SET(CMAKE_CXX_FLAGS_RELEASE "-O3")
+-   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -std=c++11 -Wno-deprecated-declarations -ftemplate-backtrace-limit=0")
++   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -std=c++14 -Wno-deprecated-declarations -ftemplate-backtrace-limit=0")
+    SET(CMAKE_CXX_FLAGS_COVERAGE "${CMAKE_CXX_FLAGS_DEBUG} --coverage -fno-inline -fno-inline-small-functions -fno-default-inline")
+    SET(CMAKE_EXE_LINKER_FLAGS_COVERAGE "${CMAKE_EXE_LINKER_FLAGS_DEBUG} --coverage")
+    SET(CMAKE_SHARED_LINKER_FLAGS_COVERAGE "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} --coverage")
+diff --git a/src/Map.cc b/src/Map.cc
+index f1f8cd0..35b2c59 100644
+--- a/src/Map.cc
++++ b/src/Map.cc
+@@ -359,7 +359,11 @@ void Map::SetLastMapChange(int currentChangeId)
+ void Map::PreSave(std::set<GeometricCamera*> &spCams)
+ {
+     int nMPWithoutObs = 0;
+-    for(MapPoint* pMPi : mspMapPoints)
++    // Iterate a COPY: EraseObservation() below can drop a MapPoint's obs to <=2,
++    // triggering SetBadFlag()->Map::EraseMapPoint()->mspMapPoints.erase(), which
++    // would invalidate this iterator mid-loop (SIGSEGV in PreSave, common on IMU maps).
++    std::set<MapPoint*> mspMapPointsCopy = mspMapPoints;
++    for(MapPoint* pMPi : mspMapPointsCopy)
+     {
+         if(!pMPi || pMPi->isBad())
+             continue;
+diff --git a/src/Settings.cc b/src/Settings.cc
+index 93a50be..cbff7ca 100644
+--- a/src/Settings.cc
++++ b/src/Settings.cc
+@@ -559,8 +559,10 @@ namespace ORB_SLAM3 {
+                 output << "Kannala-Brandt";
+             }
+             output << "" << ": [";
+-            for(size_t i = 0; i < settings.originalCalib2_->size(); i++){
+-                output << " " << settings.originalCalib2_->getParameter(i);
++            if(settings.originalCalib2_ != nullptr){   // null for "Rectified" stereo (e.g. D435i)
++                for(size_t i = 0; i < settings.originalCalib2_->size(); i++){
++                    output << " " << settings.originalCalib2_->getParameter(i);
++                }
+             }
+             output << " ]" << endl;
+ 
+diff --git a/src/System.cc b/src/System.cc
+index 60d9c51..a8ab117 100644
+--- a/src/System.cc
++++ b/src/System.cc
+@@ -81,7 +81,10 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
+         mStrLoadAtlasFromFile = settings_->atlasLoadFile();
+         mStrSaveAtlasToFile = settings_->atlasSaveFile();
+ 
+-        cout << (*settings_) << endl;
++        // NOTE: operator<<(Settings) dereferences calibration pointers that are
++        // null for "Rectified" stereo (e.g. RealSense D435i) -> SIGSEGV.
++        // It is diagnostic-only, so skip it. See settings file for parameters.
++        cout << "Settings loaded from " << strSettingsFile << endl;
+     }
+     else{
+         settings_ = nullptr;
+@@ -168,7 +171,26 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
+ 
+         loadedAtlas = true;
+ 
+-        mpAtlas->CreateNewMap();
++        // UMI localization: relocalize against the prebuilt map. Stock ORB-SLAM3
++        // starts a fresh empty map here and only rejoins the loaded map via merge,
++        // which never runs in localization-only mode (LocalMapping is stopped).
++        // Instead keep the loaded map (the one with the most KFs) active so that
++        // Tracking relocalizes directly into it.
++        {
++            Map* pBestLoaded = nullptr;
++            for(Map* pM : mpAtlas->GetAllMaps())
++                if(pM && (!pBestLoaded ||
++                          pM->GetAllKeyFrames().size() > pBestLoaded->GetAllKeyFrames().size()))
++                    pBestLoaded = pM;
++            if(pBestLoaded && !pBestLoaded->GetAllKeyFrames().empty())
++            {
++                mpAtlas->ChangeMap(pBestLoaded);
++                cout << "Loaded map kept active for relocalization: id " << pBestLoaded->GetId()
++                     << " (" << pBestLoaded->GetAllKeyFrames().size() << " KFs)" << endl;
++            }
++            else
++                mpAtlas->CreateNewMap();
++        }
+ 
+         //clock_t timeElapsed = clock() - start;
+         //unsigned msElapsed = timeElapsed / (CLOCKS_PER_SEC / 1000);
+diff --git a/src/Tracking.cc b/src/Tracking.cc
+index 5191451..19c6f5b 100644
+--- a/src/Tracking.cc
++++ b/src/Tracking.cc
+@@ -1861,7 +1861,13 @@ void Tracking::Track()
+ 
+     if(mState==NO_IMAGES_YET)
+     {
+-        mState = NOT_INITIALIZED;
++        // UMI localization: with a prebuilt map loaded and localization-only mode,
++        // start LOST so the first frames relocalize into the loaded map (the tested
++        // LOST -> Relocalization path) instead of re-initializing a fresh map.
++        if(mbOnlyTracking && pCurrentMap && pCurrentMap->KeyFramesInMap() > 0)
++            mState = LOST;
++        else
++            mState = NOT_INITIALIZED;
+     }
+ 
+     mLastProcessedState=mState;
+@@ -2146,7 +2152,9 @@ void Tracking::Track()
+             if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD)
+             {
+                 Verbose::PrintMess("Track lost for less than one second...", Verbose::VERBOSITY_NORMAL);
+-                if(!pCurrentMap->isImuInitialized() || !pCurrentMap->GetIniertialBA2())
++                // In localization-only mode never reset the (prebuilt) map: ResetActiveMap
++                // deadlocks because LocalMapping is stopped, and we want to relocalize, not reset.
++                if(!mbOnlyTracking && (!pCurrentMap->isImuInitialized() || !pCurrentMap->GetIniertialBA2()))
+                 {
+                     cout << "IMU is not or recently initialized. Reseting active map..." << endl;
+                     mpSystem->ResetActiveMap();
+@@ -2268,7 +2276,9 @@ void Tracking::Track()
+         }
+ 
+         // Reset if the camera get lost soon after initialization
+-        if(mState==LOST)
++        // (skip entirely in localization-only mode: keep relocalizing against the
++        //  prebuilt map instead of resetting / creating a new map).
++        if(mState==LOST && !mbOnlyTracking)
+         {
+             if(pCurrentMap->KeyFramesInMap()<=10)
+             {
