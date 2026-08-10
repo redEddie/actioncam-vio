@@ -53,7 +53,12 @@ def load_trajectory(path: str):
 
 
 def fit_scale(cs: np.ndarray, Rps: np.ndarray):
-    """Solve c_i + s*(R_i p_i) = X for [X, s]; returns X, s, residuals (m)."""
+    """Solve c_i + s*(R_i p_i) = X for [X, s].
+
+    ``cs`` and the returned residuals are in map units.  ``Rps`` is in
+    metres and ``s`` is map-units/metre, so callers must divide residuals by
+    ``abs(s)`` before reporting metric errors.
+    """
     n = len(cs)
     A = np.zeros((3 * n, 4))
     A[:, :3] = np.tile(np.eye(3), (n, 1))
@@ -63,13 +68,18 @@ def fit_scale(cs: np.ndarray, Rps: np.ndarray):
     return x[:3], x[3], res
 
 
-def robust_fit_scale(cs, Rps, rounds=2):
+def robust_fit_scale(cs, Rps, rounds=4, min_residual_m=0.01):
     keep = np.ones(len(cs), bool)
     for _ in range(rounds):
         X, s, res = fit_scale(cs[keep], Rps[keep])
+        if not np.isfinite(s) or abs(s) < 1e-9:
+            raise ValueError(f"invalid scale estimate: {s}")
         mad = np.median(np.abs(res - np.median(res))) * 1.4826
-        thr = max(3 * mad + np.median(res), 0.01)
-        new = np.ones(len(cs), bool)
+        # Residuals are map units.  Keep the lower bound metric by converting
+        # it with the current map-units/metre estimate.
+        thr = max(3 * mad + np.median(res), min_residual_m * abs(s))
+        # Never re-introduce samples rejected in an earlier round.
+        new = keep.copy()
         new[np.where(keep)[0][res > thr]] = False
         if new.sum() == keep.sum() or new.sum() < 3:
             break
@@ -95,6 +105,15 @@ def main():
     ap.add_argument("--time-tol", type=float, default=0.05)
     ap.add_argument("--no-scale", action="store_true",
                     help="skip scale estimation (s=1), UMI/rs_slam behaviour")
+    ap.add_argument("--scale-range", type=float, nargs=2,
+                    metavar=("MIN", "MAX"),
+                    help="fail calibration unless scale_map_per_m is within "
+                         "this range")
+    ap.add_argument("--min-inliers", type=int, default=3,
+                    help="minimum accepted tag observations (default: 3)")
+    ap.add_argument("--max-median-residual-cm", type=float,
+                    help="fail calibration when the metric median tag-fix "
+                         "residual exceeds this value")
     args = ap.parse_args()
 
     out = pathlib.Path(args.out)
@@ -108,7 +127,11 @@ def main():
     if args.apply:
         cal = json.loads(pathlib.Path(args.apply).read_text())
         s = float(cal["scale_map_per_m"])
+        if not np.isfinite(s) or s <= 0:
+            raise SystemExit(f"invalid scale_map_per_m in {args.apply}: {s}")
         T_world_map = np.array(cal["T_world_map_scaled"], float)
+        if T_world_map.shape != (4, 4) or not np.all(np.isfinite(T_world_map)):
+            raise SystemExit(f"invalid T_world_map_scaled in {args.apply}")
         transform_and_save(out, t_traj, pos, quat, ok, T_world_map, s)
         return
     if not args.detections:
@@ -133,7 +156,7 @@ def main():
         Rms.append(R_mc)
         Rps.append(R_mc @ p_cam)
         Rtags.append(R_mc @ cv2.Rodrigues(np.asarray(tag["rvec"], float))[0])
-    if len(cs) < 3:
+    if len(cs) < args.min_inliers:
         raise SystemExit(f"only {len(cs)} usable tag-{args.tag_id} samples "
                          "(0.15-2.5 m, while tracking). Record the tag more.")
     cs, Rps = np.array(cs), np.array(Rps)
@@ -146,7 +169,24 @@ def main():
         res = np.linalg.norm(X - tag_map, axis=1)
     else:
         X, s, res, keep = robust_fit_scale(cs, Rps)
+        if s <= 0:
+            raise SystemExit(f"invalid non-positive scale estimate: {s:.6g}")
         tag_map = X / s  # in scale-corrected (metric) map coords
+
+    if keep.sum() < args.min_inliers:
+        raise SystemExit(f"only {keep.sum()} inlier tag samples remain; "
+                         f"need at least {args.min_inliers}")
+    if args.scale_range and not (args.scale_range[0] <= s <= args.scale_range[1]):
+        raise SystemExit(f"scale {s:.6g} is outside requested range "
+                         f"{tuple(args.scale_range)}")
+    residual_m = res / abs(s)
+    median_residual_cm = float(np.median(residual_m[keep]) * 100)
+    max_residual_cm = float(residual_m[keep].max() * 100)
+    if (args.max_median_residual_cm is not None and
+            median_residual_cm > args.max_median_residual_cm):
+        raise SystemExit(
+            f"median tag-fix residual {median_residual_cm:.2f} cm exceeds "
+            f"limit {args.max_median_residual_cm:.2f} cm")
 
     # rotation: mean of R_map_tag over inliers
     R_mean = Rotation.from_matrix(np.array(Rtags)[keep]).mean().as_matrix()
@@ -162,8 +202,8 @@ def main():
             "scale_map_per_m": float(s),
             "tx_map_tag_scaled": tx_map_tag.tolist(),
             "T_world_map_scaled": T_world_map.tolist(),
-            "residual_cm": {"median": float(np.median(res[keep]) * 100),
-                            "max": float(res[keep].max() * 100)}}
+            "residual_cm": {"median": median_residual_cm,
+                            "max": max_residual_cm}}
     json_out = out / "tx_slam_tag.json"
     json_out.write_text(json.dumps(info, indent=2))
 
@@ -171,8 +211,8 @@ def main():
           f"({(~keep).sum()} rejected)")
     print(f"scale (map units per meter): {s:.4f}  "
           f"({(s - 1) * 100:+.1f}% vs metric)")
-    print(f"tag-fix residual: median {np.median(res[keep])*100:.2f} cm, "
-          f"max {res[keep].max()*100:.2f} cm")
+    print(f"tag-fix residual: median {median_residual_cm:.2f} cm, "
+          f"max {max_residual_cm:.2f} cm")
     print(f"marker->world check (~0):"
           f" {np.round(marker_world * 100, 2).tolist()} cm")
     print(f"-> {json_out}")
@@ -182,6 +222,8 @@ def main():
 def transform_and_save(out, t_traj, pos, quat, ok, T_world_map, s):
     """Rescale the map-frame trajectory by 1/s, move it to the world frame,
     write trajectory_world.csv + a 3-panel plot."""
+    if not np.isfinite(s) or s <= 0:
+        raise ValueError(f"scale_map_per_m must be positive and finite, got {s}")
     pos_m = pos / s
     Pw = (T_world_map[:3, :3] @ pos_m.T).T + T_world_map[:3, 3]
     Rw = Rotation.from_matrix(

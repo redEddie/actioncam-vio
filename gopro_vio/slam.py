@@ -194,11 +194,18 @@ def run_slam(video: str, imu_csv: str, out_dir: str,
         m = pathlib.Path(load_map).absolute()
         mounts += ["-v", f"{m.parent}:/map:ro"]
         opt_args += ["--load_map", f"/map/{m.name}"]
+    import os
+    gui_mounts = []
+    if "DISPLAY" in os.environ:
+        gui_mounts += ["-e", f"DISPLAY={os.environ.get('DISPLAY')}"]
+        gui_mounts += ["-v", "/tmp/.X11-unix:/tmp/.X11-unix:rw"]
+
     cmd = [
         "docker", "run", "--rm",
         "-v", f"{out}:/work",
         "-v", f"{video}:/work/video.mp4:ro",
         *mounts,
+        *gui_mounts,
         DOCKER_IMAGE,
         "/ORB_SLAM3/Examples/Monocular-Inertial/gopro_slam",
         "--vocabulary", "/ORB_SLAM3/Vocabulary/ORBvoc.txt",

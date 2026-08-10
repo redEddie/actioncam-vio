@@ -62,11 +62,37 @@ def main():
     t, wx, w3 = a[:, 0], a[:, 1], a[:, 2]
     valid = ~np.isnan(wx)
 
+    # =========================================================================
+    # [민제님 맞춤형 수정]: 매번 영상에서 최대/최소를 구하지 않고 실측 데이터 강제 주입
+    # =========================================================================
+
+    # [기존 코드 주석 처리]
+    # w_min = np.nanmin(wx)
+    # w_max = np.nanmax(wx)
+
+    # [새로운 하드코딩 수치 대입 (미터 단위)]
+    # 2026-07-23 calib_gripper.mp4 영상에서 추출한 카메라 인식 기준 실측치 (왜곡 오차 보정 완료)
+    w_min = 0.0482  # 최대로 닫혔을 때 (4.82cm)
+    w_max = 0.1306  # 최대로 열렸을 때 (13.06cm)
+
+    if w_max > w_min:
+        wx_norm = (wx - w_min) / (w_max - w_min)
+        # 측정 오차로 인해 실제 거리가 12.5cm를 넘거나 4.6cm보다 작아질 경우를 대비해
+        # 결과값이 0.0 (0%) ~ 1.0 (100%) 범위를 벗어나지 못하도록 잘라냅니다(Clip).
+        wx_norm = np.clip(wx_norm, 0.0, 1.0)
+    else:
+        wx_norm = np.zeros_like(wx)
+
+    # =========================================================================
+
+    a = np.column_stack((a, wx_norm))
+
+
     out = pathlib.Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     np.savetxt(out / "gripper_width.csv",
                a, delimiter=",", comments="",
-               header="t_s,width_x_m,width_3d_m")
+               header="t_s,width_x_m,width_3d_m,width_norm")
 
     # noise estimate: high-frequency component via frame-to-frame diff
     wv = wx[valid]
@@ -74,6 +100,14 @@ def main():
     fig, ax = plt.subplots(figsize=(12, 4))
     ax.plot(t[valid], wv * 100, ".-", ms=2, lw=0.8, label="width_x (cam-x diff)")
     ax.plot(t[valid], w3[valid] * 100, alpha=0.4, lw=0.8, label="|t_r - t_l| 3D")
+
+    ax2 = ax.twinx()
+    ax2.plot(t[valid], wx_norm[valid], "r-", alpha=0.5, label="normalized (0~1)")
+    ax2.set_ylabel("Normalized (0.0 - 1.0)", color='red')
+    ax2.tick_params(axis='y', labelcolor='red')
+    ax2.legend(loc="upper right")
+
+
     ax.set_xlabel("t (s)"); ax.set_ylabel("width (cm)")
     ax.grid(alpha=.3); ax.legend()
     ax.set_title(f"gripper width  ({valid.sum()}/{len(t)} frames, "

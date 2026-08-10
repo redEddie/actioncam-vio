@@ -18,12 +18,14 @@ MP4 ─┬─> IMU 추출        gopro_vio.extract (GPMF) / gopro_vio.insta360 (
 
 ## 지원 카메라
 
-| 카메라 | IMU | FOV(H) | 근거리 ATE† | 상세 페이지 |
+| 카메라 | IMU | FOV (H / D) | 근거리 ATE† | 상세 페이지 |
 |---|---|---|---|---|
-| **Insta360 Ace Pro 2** | 994 Hz | 130.1° | **1.23 cm** | [cameras/acepro2](cameras/acepro2/README.md) |
-| **GoPro HERO7 Black** | 197.7 Hz | 120.5° | 1.88 cm | [cameras/hero7black](cameras/hero7black/README.md) |
+| **Insta360 Ace Pro 2** | 994 Hz | 130.1° / 152.3° | **1.23 cm** | [cameras/acepro2](cameras/acepro2/README.md) |
+| **GoPro HERO7 Black** | 197.7 Hz | 120.5° / 146.6° | 1.88 cm | [cameras/hero7black](cameras/hero7black/README.md) |
+| **GoPro HERO13 Black** | ≈202 Hz | 119.8° / 154.6° | 미측정‡ | [cameras/hero13black](cameras/hero13black/README.md) |
 
 † ChArUco mm급 기준 궤적 대비 rigid ATE RMSE (보드 15~63 cm 근거리, 스케일 보정 없음)
+‡ HERO13은 파이프라인 동작만 확인(근거리 UMI 에피소드 100% 추적). ChArUco 근거리 ATE는 미촬영 — 상세 페이지 참조
 
 새 카메라 추가 = IMU 추출 모듈 하나 작성 + ChArUco 보드 영상 1~2개 촬영이 전부입니다.
 나머지(캘리브레이션→정렬→SLAM→평가)는 카메라 무관 공용입니다.

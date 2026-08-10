@@ -42,6 +42,9 @@ def camera_angular_velocity(times, rvecs, max_dt):
     R_cb(t) maps board->camera.  Exp(w dt) = R_wc(t)^T R_wc(t+dt)
     = R_cb(t) R_cb(t+dt)^T with w expressed in the camera frame at t.
     """
+    valid = ~np.isnan(rvecs).any(axis=1) & (np.linalg.norm(rvecs, axis=1) > 1e-6)
+    times = times[valid]
+    rvecs = rvecs[valid]
     rot = R.from_rotvec(rvecs)
     w_t, w = [], []
     for i in range(len(times) - 1):
@@ -126,10 +129,14 @@ def main():
     args = ap.parse_args()
 
     z = np.load(args.poses)
+    z_t, z_rvec = z["t"], z["rvec"]
+    valid = ~np.isnan(z_rvec).any(axis=1) & (np.linalg.norm(z_rvec, axis=1) > 1e-6)
+    z_t, z_rvec = z_t[valid], z_rvec[valid]
+
     imu = np.loadtxt(args.imu_csv, delimiter=",", skiprows=1)
     t_imu, w_imu, a_imu = imu[:, 0], imu[:, 1:4], imu[:, 4:7]
 
-    t_cam, w_cam = camera_angular_velocity(z["t"], z["rvec"],
+    t_cam, w_cam = camera_angular_velocity(z_t, z_rvec,
                                            max_dt=1.5 / args.fps)
     print(f"[sync] camera angular velocity samples: {len(t_cam)}")
 
@@ -150,7 +157,7 @@ def main():
     eul = R.from_matrix(R_ic).as_euler("xyz", degrees=True)
     print(f"        (xyz euler deg: {eul.round(2)})")
 
-    g_mean, g_spread = gravity_check(z["t"], z["rvec"], t_imu, a_imu,
+    g_mean, g_spread = gravity_check(z_t, z_rvec, t_imu, a_imu,
                                      w_imu, R_ic, offset)
     print(f"[check] gravity in board frame: {g_mean.round(3)} "
           f"|g|={np.linalg.norm(g_mean):.3f} m/s^2, spread {g_spread:.3f}")
