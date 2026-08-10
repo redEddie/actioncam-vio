@@ -19,5 +19,7 @@ venv/
 Miniconda*-Linux-*.sh
 build_log*.txt
 
-# generated episode outputs are opt-in; selected samples are force-added
+# heavy per-episode pipeline outputs stay out of git;
+# curated samples live under cameras/<model>/results/
+Episode/
 Episode_result/
