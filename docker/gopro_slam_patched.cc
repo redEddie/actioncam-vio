@@ -316,6 +316,11 @@ int main(int argc, char **argv) {
   if (!output_trajectory_csv.empty()) {
     SLAM.SaveTrajectoryCSV(output_trajectory_csv);
     SLAM.SaveTrajectoryAllMapsCSV(output_trajectory_csv + ".allmaps");
+    string ply_path = output_trajectory_csv;
+    size_t last_slash = ply_path.find_last_of('/');
+    if(last_slash != string::npos) ply_path = ply_path.substr(0, last_slash+1) + "map_points.ply";
+    else ply_path = "map_points.ply";
+    SLAM.SaveMapPointsPLY(ply_path);
   }
 
   // Stop all threads (also saves the map atlas if requested)

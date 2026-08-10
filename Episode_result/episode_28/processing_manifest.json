@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-03T04:18:18.040161+00:00",
+  "kind": "demo",
+  "upstream_repository": "https://github.com/redEddie/actioncam-vio",
+  "upstream_commit": "d77cee58c597f6710d954a0df178d20ff2c9d7ef",
+  "video": {
+    "path": "Episode/GX010042.MP4",
+    "size_bytes": 101388711,
+    "mtime_ns": 1784801321000000000
+  },
+  "camera": "hero13black",
+  "calibration_sha256": "f44e7ec08a914ccd65277db7f73772178867387080147cd90d55b38b9ff5c39f",
+  "imu_extrinsics_sha256": "0ac52997ccb8a8af44c1d3e02db33d3784f7dbe08c2f440710ecdfb6329dc32d",
+  "gripper_mask_sha256": "02759bbb7b35ed41627aec258b73ef1e96d573ee076952f6346991c70e7d4fa8",
+  "map_atlas_sha256": "7a4692530d35dc38043b9a247f9c75cfacfe0c79545731a3f91bad7be76a4e3b",
+  "validation": {
+    "passed": true,
+    "kind": "demo",
+    "rows": 406,
+    "tracked_poses": 406,
+    "tracked_ratio": 1,
+    "longest_contiguous_tracked_ratio": 1,
+    "world_span_m": [
+      0.1428386072737419,
+      0.3292955414526387,
+      0.09823932812432351
+    ],
+    "world_bounding_diagonal_m": 0.37214162215318947,
+    "max_adjacent_step_m": 0.01553662023469234,
+    "p99_adjacent_step_m": 0.008577178429808631,
+    "scale_map_per_m": 0.9643757446770029,
+    "transform_reproduction_max_error_m": 9.8879238130678e-17,
+    "fail_to_track_count": 0,
+    "relocalized_count": 1,
+    "atlas_loaded": true,
+    "failures": []
+  },
+  "tcp_robot_transform": {
+    "passed": true,
+    "rows": 406,
+    "tracked_poses": 406,
+    "input": "Episode_result/episode_28/world/trajectory_world.csv",
+    "outputs": {
+      "tcp_tag": "Episode_result/episode_28/world/trajectory_tcp_tag.csv",
+      "tcp_robot": "Episode_result/episode_28/world/trajectory_tcp_robot.csv"
+    },
+    "config": "/home/kimminje/Desktop/project/gopro_umi/1_data_pipeline/actioncam-vio/configs/umi_coordinate_frames.yaml",
+    "config_sha256": "644fa39eb501e393cb8cc2574999991d53e460c685be0660e55273b5d863d9d9",
+    "frames": {
+      "input": "aruco_tag_13_camera_pose",
+      "intermediate": "aruco_tag_13_tcp_pose",
+      "output": "robot_base_tcp_link_pose"
+    },
+    "camera_to_tcp_translation_m": [
+      0,
+      0.09,
+      0.16
+    ],
+    "camera_to_tcp_rotation": [
+      [
+        -1,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        -1
+      ]
+    ],
+    "tag_to_robot_translation_m": [
+      0.5,
+      0,
+      0
+    ],
+    "tag_to_robot_rotation": [
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        -1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1
+      ]
+    ],
+    "camera_to_tcp_offset_norm_m": 0.1835755975068582,
+    "camera_to_tcp_composition_max_error_m": 2.797157557069881e-17,
+    "tag_to_robot_composition_max_error_m": 0,
+    "orientation_composition_max_error": 0,
+    "tag_robot_z_preservation_max_error_m": 0,
+    "failures": []
+  }
+}

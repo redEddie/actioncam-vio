@@ -1,0 +1,15 @@
+{
+  "path": "/home/kimminje/Desktop/project/gopro_umi/1_data_pipeline/actioncam-vio/Episode/GX010036.MP4",
+  "width": 3840,
+  "height": 3360,
+  "num_frames": 816,
+  "fps": 59.94005994005994,
+  "duration_s": 13.6136,
+  "creation_time": "2026-07-23T01:04:33+00:00",
+  "accl_hz": 201.79820179820175,
+  "gyro_hz": 201.79820179820175,
+  "accl_orientation": "ZXY",
+  "gyro_orientation": "ZXY",
+  "accl_name": "Accelerometer",
+  "gyro_name": "Gyroscope"
+}

@@ -868,6 +868,39 @@ void System::SaveTrajectoryTUM(const string &filename)
     cout << endl << "TUM camera trajectory saved!" << endl;
 }
 
+void System::SaveMapPointsPLY(const string &filename)
+{
+    cout << endl << "Saving map points to " << filename << " ..." << endl;
+    vector<Map*> vpMaps = mpAtlas->GetAllMaps();
+    int nPoints = 0;
+    for(Map* pMap : vpMaps) {
+        vector<MapPoint*> vpMPs = pMap->GetAllMapPoints();
+        for(MapPoint* pMP : vpMPs) {
+            if(!pMP || pMP->isBad()) continue;
+            nPoints++;
+        }
+    }
+
+    ofstream f(filename.c_str());
+    f << "ply\nformat ascii 1.0\n";
+    f << "element vertex " << nPoints << "\n";
+    f << "property float x\nproperty float y\nproperty float z\n";
+    f << "property int map_id\n";
+    f << "end_header\n";
+
+    for(Map* pMap : vpMaps) {
+        int map_id = pMap->GetId();
+        vector<MapPoint*> vpMPs = pMap->GetAllMapPoints();
+        for(MapPoint* pMP : vpMPs) {
+            if(!pMP || pMP->isBad()) continue;
+            Eigen::Vector3f p = pMP->GetWorldPos();
+            f << fixed << p(0) << " " << p(1) << " " << p(2) << " " << map_id << "\n";
+        }
+    }
+    f.close();
+    cout << "Map points saved! Total: " << nPoints << endl;
+}
+
 void System::SaveKeyFrameTrajectoryTUM(const string &filename)
 {
     cout << endl << "Saving keyframe trajectory to " << filename << " ..." << endl;

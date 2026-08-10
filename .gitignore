@@ -13,3 +13,11 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 hf_dataset/
+
+# local environments, installers, and build logs
+venv/
+Miniconda*-Linux-*.sh
+build_log*.txt
+
+# generated episode outputs are opt-in; selected samples are force-added
+Episode_result/

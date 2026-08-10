@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "kind": "demo",
+  "rows": 418,
+  "tracked_poses": 418,
+  "tracked_ratio": 1.0,
+  "longest_contiguous_tracked_ratio": 1.0,
+  "world_span_m": [
+    0.2446298340046539,
+    0.2787522592748148,
+    0.0780253748953881
+  ],
+  "world_bounding_diagonal_m": 0.3789914733388126,
+  "max_adjacent_step_m": 0.022947073931555973,
+  "p99_adjacent_step_m": 0.016586353522839978,
+  "scale_map_per_m": 0.9643757446770029,
+  "transform_reproduction_max_error_m": 9.71445146547012e-17,
+  "fail_to_track_count": 0,
+  "relocalized_count": 1,
+  "atlas_loaded": true,
+  "failures": []
+}

@@ -14,4 +14,4 @@ origin_tag_id: 13
 # 그리퍼 너비: 두 손가락 마커의 카메라 x좌표 차 - offset.
 # 좌/우는 영상 내 x위치로 자동 판별. offset은 완전-닫힘 원시값으로 나중에 튜닝.
 gripper_finger_ids: [0, 1]
-gripper_width_offset_m: 0.0
+gripper_width_offset_m: 0.0448

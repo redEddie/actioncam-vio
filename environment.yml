@@ -9,6 +9,8 @@ dependencies:
   - pandas
   - tqdm
   - pyyaml
+  # build_umi_zarr.py writes the UMI DirectoryStore schema (Zarr v2).
+  - zarr>=2.16,<3
   - ffmpeg
   - pip
   - pip:

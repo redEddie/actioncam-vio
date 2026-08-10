@@ -1,0 +1,67 @@
+{
+  "passed": true,
+  "rows": 408,
+  "tracked_poses": 408,
+  "input": "Episode_result/episode_22/world/trajectory_world.csv",
+  "outputs": {
+    "tcp_tag": "Episode_result/episode_22/world/trajectory_tcp_tag.csv",
+    "tcp_robot": "Episode_result/episode_22/world/trajectory_tcp_robot.csv"
+  },
+  "config": "/home/kimminje/Desktop/project/gopro_umi/1_data_pipeline/actioncam-vio/configs/umi_coordinate_frames.yaml",
+  "config_sha256": "644fa39eb501e393cb8cc2574999991d53e460c685be0660e55273b5d863d9d9",
+  "frames": {
+    "input": "aruco_tag_13_camera_pose",
+    "intermediate": "aruco_tag_13_tcp_pose",
+    "output": "robot_base_tcp_link_pose"
+  },
+  "camera_to_tcp_translation_m": [
+    0.0,
+    0.09,
+    0.16
+  ],
+  "camera_to_tcp_rotation": [
+    [
+      -1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      -1.0
+    ]
+  ],
+  "tag_to_robot_translation_m": [
+    0.5,
+    0.0,
+    0.0
+  ],
+  "tag_to_robot_rotation": [
+    [
+      0.0,
+      1.0,
+      0.0
+    ],
+    [
+      -1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "camera_to_tcp_offset_norm_m": 0.1835755975068582,
+  "camera_to_tcp_composition_max_error_m": 2.7769124835677133e-17,
+  "tag_to_robot_composition_max_error_m": 0.0,
+  "orientation_composition_max_error": 0.0,
+  "tag_robot_z_preservation_max_error_m": 0.0,
+  "failures": []
+}
