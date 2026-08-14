@@ -21,3 +21,23 @@ build_log*.txt
 
 # generated episode outputs are opt-in; selected samples are force-added
 Episode_result/
+
+# Repository source-only policy: episode data stays local/external.
+/Episode/
+/Episode_result/
+
+# Canonical gopro_umi snapshot excludes reproducible or external heavy data.
+/gopro_umi/1_capture/actioncam-vio/
+/gopro_umi/Delta_Weights/model.safetensors
+/gopro_umi/smolvla_cache/
+/gopro_umi/reports/
+/gopro_umi/runtime_logs/
+/gopro_umi/2_dataset/**/*.zarr/
+/gopro_umi/2_dataset/**/data/
+/gopro_umi/3_training/runs/
+/gopro_umi/3_training/checkpoints/
+/gopro_umi/archive/backups/
+/gopro_umi/archive/generated_results/
+/gopro_umi/archive/legacy_dataset/
+/gopro_umi/archive/old_checkpoints/
+/gopro_umi/archive/snapshots/

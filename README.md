@@ -144,6 +144,11 @@ LOST/리셋 경로와 영상 종료 시점의 비결정적 세그폴트 → 주�
 
 ## 데이터·결과물
 
+- **Canonical GoPro-UMI project source**: [`gopro_umi/`](gopro_umi/) —
+  정리된 dataset conversion, recovered training launcher, deployment,
+  evaluation, tools, configuration, documentation을 포함합니다. 원본 Episode,
+  생성 dataset, model weight, cache는 포함하지 않습니다.
+
 - **데이터셋**: [huggingface.co/datasets/chanwook/actioncam-vio](https://huggingface.co/datasets/chanwook/actioncam-vio)
   — 원본 영상 11편(10.8 GB) + SLAM 산출물 + 매니페스트. 다운로드:
   ```bash

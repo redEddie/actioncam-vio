@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "purpose": "approved SmolVLA physical inference start pose",
+  "approved_for_policy_start": true,
+  "units": "degrees",
+  "joint_order": [
+    "shoulder_pan",
+    "shoulder_lift",
+    "elbow_flex",
+    "wrist_flex",
+    "wrist_roll"
+  ],
+  "raw_start_deg": [
+    -7.1208791208791204,
+    -79.47252747252747,
+    81.84615384615384,
+    46.417582417582416,
+    1.3626373626373627
+  ],
+  "urdf_start_deg": [
+    1.4945054945054945,
+    -83.51648351648352,
+    79.82417582417582,
+    45.36263736263736,
+    0.0
+  ],
+  "mapping_reference": "motor_mapping.json",
+  "mapping_relation": "RAW = URDF * sign + encoder_zero",
+  "provenance": {
+    "source": "../../archive/patch_history/calibration_provenance/yawfree_physical_start_v2.json",
+    "source_sha256": "24498de75e7359d6073f6ed05ac7bf251867d126f173af85171b4efab7c7e261"
+  }
+}

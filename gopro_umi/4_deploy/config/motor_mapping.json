@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "purpose": "canonical deployment joint and gripper domain mapping",
+  "arm_units": "degrees",
+  "arm_joint_order": [
+    "shoulder_pan",
+    "shoulder_lift",
+    "elbow_flex",
+    "wrist_flex",
+    "wrist_roll"
+  ],
+  "formula": {
+    "raw_from_urdf": "raw_deg = urdf_deg * sign + encoder_zero_deg",
+    "urdf_from_raw": "urdf_deg = (raw_deg - encoder_zero_deg) / sign"
+  },
+  "joints": {
+    "shoulder_pan": {"motor_id": 1, "sign": 1, "encoder_zero_deg": -8.615384615384615, "encoder_zero_raw_tick": 2084},
+    "shoulder_lift": {"motor_id": 2, "sign": 1, "encoder_zero_deg": 4.043956043956044, "encoder_zero_raw_tick": 2064},
+    "elbow_flex": {"motor_id": 3, "sign": 1, "encoder_zero_deg": 2.021978021978022, "encoder_zero_raw_tick": 2001},
+    "wrist_flex": {"motor_id": 4, "sign": 1, "encoder_zero_deg": 1.054945054945055, "encoder_zero_raw_tick": 2068},
+    "wrist_roll": {"motor_id": 5, "sign": 1, "encoder_zero_deg": 1.3626373626373627, "encoder_zero_raw_tick": 2063}
+  },
+  "gripper": {
+    "motor_id": 6,
+    "normalized_width_open": 1.0,
+    "normalized_width_closed": 0.0,
+    "open_raw": 600,
+    "closed_raw": 3000,
+    "mapping": "raw = closed_raw + width * (open_raw - closed_raw)",
+    "provenance": "authoritative physical endpoints frozen by user on 2026-08-13"
+  },
+  "provenance": {
+    "source": "../../archive/patch_history/calibration_provenance/yawfree_user_defined_joint_zero.json",
+    "source_sha256": "dcaa3f308ee166320c686fbd9d446da2dd654e9c173ab85e7b7bd4f9ca47e674"
+  }
+}

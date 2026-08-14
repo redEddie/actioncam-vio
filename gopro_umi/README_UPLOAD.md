@@ -1,45 +1,42 @@
-# gopro_umi project snapshot
+# Canonical gopro_umi source snapshot
 
-This directory contains the code, configuration, documentation, tests, robot
-assets, and lightweight reproducibility artifacts from the surrounding
-`gopro_umi` workspace.
+This directory is the cleaned, source-only snapshot of the canonical
+`gopro_umi` workspace as of 2026-08-14.
 
 ## Included
 
-- Data-pipeline helper scripts outside the `actioncam-vio` repository.
-- Dataset conversion scripts and LeRobot metadata for the regular and
-  yaw-free datasets.
-- Regular and yaw-free training scripts, configs, and lightweight checkpoint
-  metadata.
-- Deployment, evaluation, calibration, teleoperation, debugging, and test
-  scripts.
-- SO-100/SO-101 URDF and mesh assets.
-- The locally modified LeRobot worktree, including the SO follower change.
-- UMI source trees and the top-level `TEST` utilities.
-- Yaw-free server handoff candidates without full model weights.
-
-The five selected raw demonstrations and their complete processed VIO results
-are stored at the repository root under `Episode/` and `Episode_result/`. See
-`HERO13_SAMPLE_EPISODES.md` for the exact mapping.
+- Dataset conversion and validation source under `2_dataset/`.
+- Recovered final training launcher, preflight, contract, and tests under
+  `3_training/scripts/`.
+- Canonical deployment, configuration, IK/URDF assets, controller, inference,
+  trajectory, telemetry, evaluation, and tests under `4_deploy/`.
+- Canonical manual tools, project documentation, and `pipeline.md`.
+- Lightweight model configuration and processor metadata in `Delta_Weights/`.
+- LeRobot as a pinned Git submodule at commit
+  `1bb9933215dcb7ffeeae6d3746cda3f73f5a59e2`.
 
 ## Intentionally excluded
 
-- All other raw episode videos and generated video outputs.
-- Full LeRobot datasets and replay-buffer Zarr arrays.
-- Model and optimizer weight files larger than GitHub's 100 MiB limit.
-- Hugging Face/SmolVLA caches, virtual environments, Python bytecode, build
-  logs, nested Git object databases, and large temporary output archives.
-- GoPro firmware blobs and installers.
+- `Episode/`, `Episode_result/`, raw videos, and generated SLAM outputs.
+- Replay-buffer Zarr and serialized LeRobot datasets.
+- `Delta_Weights/model.safetensors`, old checkpoints, optimizer state, and
+  training runs.
+- Hugging Face/SmolVLA caches, virtual environments, bytecode, and test caches.
+- Generated reports/media/logs, backup archives, firmware snapshots, and old
+  checkpoint families.
+- Legacy runners, patch/debug history, controller/start-pose experiments, and
+  other archive-only material that is not needed to run the canonical pipeline.
+- Historical benchmark scripts that still reference superseded action shapes.
+- The actioncam-vio repository itself, because it already owns the Git root;
+  recursive duplication would create an invalid project-within-project tree.
 
-These exclusions keep the branch cloneable while retaining the code and small
-metadata needed to understand and reproduce the project.
+The excluded model and dataset artifacts must be restored separately at the
+paths documented in `docs/CHECKPOINTS.md`. Clone with submodules:
 
-## Vendored source revisions
+```bash
+git clone --branch hero13 --recurse-submodules \
+  https://github.com/redEddie/actioncam-vio.git
+```
 
-- `umi/`: `redEddie/umi-realsense` at
-  `b12fc81fb9ad60f4ec02c5d515dcea434f9ebf27`
-- `2_dataset/umi_official/`: `real-stanford/universal_manipulation_interface`
-  at `d095ba9590df789df5189eea5ee7e431689038a6`
-- `4_deploy/Teleop/lerobot/`: `huggingface/lerobot` at
-  `1bb9933215dcb7ffeeae6d3746cda3f73f5a59e2`, plus the local
-  `so_follower.py` modification
+No training, inference, hardware access, or model modification is performed by
+this source upload.
