@@ -1,0 +1,34 @@
+# Fixed transforms for the HERO13 UMI rig.
+#
+# Convention: T_parent_child maps coordinates expressed in ``child`` into
+# ``parent``.  A pose composition is therefore T_parent_grandchild =
+# T_parent_child @ T_child_grandchild.
+#
+# Camera (OpenCV/ORB optical): +X right, +Y down, +Z forward.
+# TCP (URDF tcp_link):          +X left,  +Y down, -Z forward.
+# Tag (OpenCV ArUco):           +X right, +Y up,   +Z tag normal/up.
+# Robot base:                   +X forward, +Y left, +Z up.
+
+camera_to_tcp:
+  parent_frame: camera_optical
+  child_frame: tcp_link
+  # TCP origin, expressed in the GoPro optical frame: below 9 cm, forward 16 cm.
+  translation_m: [0.0, 0.09, 0.16]
+  # 180 degrees about camera +Y: TCP +X is camera -X, TCP +Y is camera +Y,
+  # and TCP +Z is camera -Z.
+  rotation_matrix:
+    - [-1.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0]
+    - [0.0, 0.0, -1.0]
+
+tag_to_robot:
+  parent_frame: robot_base
+  child_frame: aruco_tag_13
+  # The tag origin expressed in robot-base coordinates: 50 cm along robot +X.
+  translation_m: [0.50, 0.0, 0.0]
+  # tag -> robot: Rz(-90 deg).  Equivalently robot +X is tag +Y,
+  # robot +Y is tag -X, and robot +Z is tag +Z.
+  rotation_matrix:
+    - [0.0, 1.0, 0.0]
+    - [-1.0, 0.0, 0.0]
+    - [0.0, 0.0, 1.0]

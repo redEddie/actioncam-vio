@@ -1,0 +1,72 @@
+{
+  "step": "B8E",
+  "run_id": "run_20260814_163926",
+  "timestamp": "20260814_163926",
+  "mode": "forward_5cm",
+  "run_status": "COMPLETED",
+  "project_path": "/home/kimminje/Desktop/project/gopro_umi",
+  "control_rate_hz": 30.0,
+  "move_duration_s": 3.0,
+  "hold_duration_s": 5.0,
+  "requested_translation_m": 0.05,
+  "forward_frame": "base_link",
+  "forward_axis": "+X",
+  "forward_sign": "+1",
+  "k_ext": 0.5,
+  "p": 64,
+  "i": 0,
+  "d": 32,
+  "q_corr_clamp_deg": 2.0,
+  "dynamic_reference_deg": [
+    0.0,
+    -0.615,
+    -2.286,
+    -0.703,
+    0.0
+  ],
+  "static_bias_deg": [
+    0.264,
+    0.0,
+    0.0,
+    0.0,
+    -0.352
+  ],
+  "canonical_q_raw_deg": [
+    -7.1208791208791204,
+    -79.47252747252747,
+    81.84615384615384,
+    46.417582417582416,
+    1.3626373626373627
+  ],
+  "canonical_q_urdf_deg": [
+    1.4945054945054945,
+    -83.51648351648352,
+    79.82417582417582,
+    45.36263736263736,
+    0.0
+  ],
+  "start_tcp_m": [
+    0.25244257789988805,
+    -0.005748999132233442,
+    0.030660565148016933
+  ],
+  "target_tcp_m": [
+    0.30244257789988804,
+    -0.005748999132233442,
+    0.030660565148016933
+  ],
+  "final_tcp_m": [
+    0.3041860248904897,
+    -0.005876525616282744,
+    0.03402953851990638
+  ],
+  "final_tcp_error_mm": 3.795504181748722,
+  "forward_progress_mm": 51.743446990601626,
+  "forward_error_mm": 1.7434469906016243,
+  "lateral_error_mm": 3.371386151812653,
+  "hardware_accessed": true,
+  "camera_accessed": false,
+  "ssh_accessed": false,
+  "model_inference": false,
+  "abort_reason": null
+}

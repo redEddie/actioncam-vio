@@ -1,0 +1,19 @@
+{
+  "n_frames": 3413,
+  "n_tracked": 3373,
+  "tracked_ratio": 0.9882801054790507,
+  "duration_s": 113.847067,
+  "path_length_m": 170.45783054648226,
+  "extent_m": [
+    40.658931732,
+    13.174255729,
+    43.686105280999996
+  ],
+  "states": {
+    "OK": 3384,
+    "NOT_INITIALIZED": 28,
+    "RECENTLY_LOST": 1
+  },
+  "path_length_visual_ok_m": 170.45783054648226,
+  "n_visual_ok": 3373
+}

@@ -1,0 +1,18 @@
+name: gopro-vio
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - numpy
+  - scipy
+  - matplotlib
+  - pandas
+  - tqdm
+  - pyyaml
+  # build_umi_zarr.py writes the UMI DirectoryStore schema (Zarr v2).
+  - zarr>=2.16,<3
+  - ffmpeg
+  - pip
+  - pip:
+      - opencv-contrib-python>=5.0
+      - rerun-sdk

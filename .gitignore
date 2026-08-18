@@ -1,0 +1,87 @@
+# ======================================================================
+# GOPRO_UMI ROOT REPOSITORY GITIGNORE (SOURCE ONLY - NO HEAVY DATA/WEIGHTS)
+# ======================================================================
+
+# Python / build / IDE artifacts
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
+
+# Local virtual environments & installers
+venv/
+.venv/
+env/
+Miniconda*-Linux-*.sh
+build_log*.txt
+
+# Media & Video files
+*.MP4
+*.mp4
+*.MOV
+*.mov
+*.THM
+*.lrv
+*.avi
+
+# Large datasets & heavy intermediate representations
+*.zarr/
+*.zarr
+*.ply
+*.osa
+*.rrd
+*.arrow
+*.parquet
+
+# Model weights & binary checkpoints (> 10MB)
+*.safetensors
+*.pt
+*.pth
+*.bin
+*.onnx
+*.weights
+*.ckpt
+
+# Archives and dumps
+*.zip
+*.tar
+*.tar.gz
+*.tar.bz2
+*.7z
+*.gz
+
+# Specific data paths in 1_capture
+1_capture/actioncam-vio/data/
+1_capture/actioncam-vio/output/
+1_capture/actioncam-vio/Episode/
+1_capture/actioncam-vio/Episode_result/
+1_capture/actioncam-vio/venv/
+1_capture/actioncam-vio/hf_dataset/
+
+# Specific data paths in 7_storage
+7_storage/datasets/
+7_storage/Delta_Weights/model.safetensors
+7_storage/run/pretrained_model/model.safetensors
+7_storage/archive/
+7_storage/lerobot/
+
+# Specific training runs / checkpoints
+3_training/runs/
+3_training/checkpoints/
+3_training/smolvla_10hz_chunk15_incremental_baseline_v1/
+
+# Runtime telemetry logs
+runtime_logs/*
+!runtime_logs/.gitkeep
+
+# Heavy etc archives and caches
+etc/archive/
+etc/smolvla_cache/
+etc/third_party/

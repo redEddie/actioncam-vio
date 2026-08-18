@@ -1,0 +1,37 @@
+{
+  "time_offset_s": -0.05295575580171442,
+  "time_offset_note": "imu_time = video_time + offset; subtract from IMU cts to align to video",
+  "corr_peak": 0.7809368214453017,
+  "R_imu_cam": [
+    [
+      -0.00346183351948778,
+      0.007820543058696556,
+      -0.9999634267386733
+    ],
+    [
+      0.9999888129580695,
+      -0.0031961480003264565,
+      -0.003486917932830198
+    ],
+    [
+      -0.003223300698606204,
+      -0.9999643112352694,
+      -0.007809391037672738
+    ]
+  ],
+  "gyro_residual_rms_rad_s": 0.07729309343589814,
+  "gyro_residual_relative": 0.27269793162593636,
+  "gravity_board_frame": [
+    0.02789112573966192,
+    -0.0003593155605774721,
+    -9.488767413907672
+  ],
+  "gravity_norm": 9.488808411978756,
+  "gravity_spread": 0.22086124687828088,
+  "t_imu_cam_m": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "t_note": "translation not observable from gyro-only alignment; set to zero (GoPro IMU sits ~1-2 cm from lens)"
+}

@@ -1,0 +1,3 @@
+[submodule "gopro_umi/third_party/lerobot"]
+	path = gopro_umi/third_party/lerobot
+	url = https://github.com/huggingface/lerobot.git

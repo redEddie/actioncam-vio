@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "source_dataset_id": "202608161903",
+  "source_dataset_root": "/home/kimminje/Desktop/project/gopro_umi/7_storage/datasets/202608161903",
+  "source_model_path": "/home/kimminje/Desktop/project/gopro_umi/7_storage/datasets/202608161903/04_training/final/pretrained_model",
+  "promotion_timestamp": "2026-08-18T08:58:56.209267",
+  "promotion_status": "PASS",
+  "model_contract": {
+    "status": "PASS",
+    "model_type": "SmolVLA",
+    "raw_output_shape": [
+      1,
+      15,
+      6
+    ],
+    "local_action_shape": [
+      15,
+      6
+    ],
+    "action_dimension": 6,
+    "chunk_size": 15,
+    "action_rate_hz": 10.0
+  }
+}

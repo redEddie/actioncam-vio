@@ -1,0 +1,112 @@
+{
+  "timestamp": "2026-08-18T08:53:40.571759",
+  "joint_order": [
+    "shoulder_pan",
+    "shoulder_lift",
+    "elbow_flex",
+    "wrist_flex",
+    "wrist_roll"
+  ],
+  "units": "degrees",
+  "motor_zero_at_urdf_zero_deg": [
+    9.4066,
+    4.4396,
+    3.9121,
+    2.6813,
+    5.6703
+  ],
+  "motor_start_deg": [
+    8.7912,
+    19.2088,
+    87.3407,
+    -91.2967,
+    5.4066
+  ],
+  "urdf_start_deg": [
+    -0.6154,
+    14.7692,
+    83.4286,
+    -93.978,
+    -0.2637
+  ],
+  "zero_measurement": {
+    "median_deg": [
+      9.4066,
+      4.4396,
+      3.9121,
+      2.6813,
+      5.6703
+    ],
+    "mean_deg": [
+      9.4066,
+      4.4396,
+      3.9121,
+      2.6813,
+      5.6703
+    ],
+    "std_deg": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "min_deg": [
+      9.4066,
+      4.4396,
+      3.9121,
+      2.6813,
+      5.6703
+    ],
+    "max_deg": [
+      9.4066,
+      4.4396,
+      3.9121,
+      2.6813,
+      5.6703
+    ],
+    "sample_count": 60
+  },
+  "start_measurement": {
+    "median_deg": [
+      8.7912,
+      19.2088,
+      87.3407,
+      -91.2967,
+      5.4066
+    ],
+    "mean_deg": [
+      8.7912,
+      19.181,
+      87.4857,
+      -91.2967,
+      5.4066
+    ],
+    "std_deg": [
+      0.0,
+      0.0611,
+      0.3509,
+      0.0,
+      0.0
+    ],
+    "min_deg": [
+      8.7912,
+      19.033,
+      87.1648,
+      -91.2967,
+      5.4066
+    ],
+    "max_deg": [
+      8.7912,
+      19.2088,
+      88.044,
+      -91.2967,
+      5.4066
+    ],
+    "sample_count": 60
+  },
+  "conversion": {
+    "motor_to_urdf": "q_urdf = q_motor - motor_zero_at_urdf_zero",
+    "urdf_to_motor": "q_motor = q_urdf + motor_zero_at_urdf_zero"
+  }
+}

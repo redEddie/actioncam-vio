@@ -1,0 +1,27 @@
+{
+  "step": "B01",
+  "run_id": "run_20260814_192420",
+  "timestamp": "20260814_192420",
+  "status": "COMPLETED",
+  "warmup_runs": 5,
+  "measured_runs": 30,
+  "successful_runs": 30,
+  "failed_runs": 0,
+  "failure_reasons": [],
+  "remote_host": "155.230.189.77",
+  "ssh_port": 17970,
+  "model_action_shape": [
+    15,
+    6
+  ],
+  "action_rate_hz": 10.0,
+  "latency_target_ms": 400.0,
+  "total_latency_stats": {
+    "mean_ms": 243.5537601666667,
+    "p50_ms": 255.655278,
+    "p95_ms": 274.51554545,
+    "p99_ms": 280.2616926,
+    "max_ms": 281.093488,
+    "min_ms": 176.122644
+  }
+}
