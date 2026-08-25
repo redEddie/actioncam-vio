@@ -1,0 +1,18 @@
+{
+ "recipe": "V6 se3_relwp_v1: SE(3) relative state(10D)/relative-waypoint action(15x10D), strong image augmentation, vision encoder trained",
+ "source_run": "~/work/smolvla/variants/runs/V6_se3relwp_strongaug",
+ "checkpoint_step": 11000,
+ "trained_episodes": "0-89 (hold-out 90-98)",
+ "holdout_metrics": {
+  "traj_pos_rmse_cm": 2.92,
+  "final_err_cm": 4.13,
+  "dtw": 0.655,
+  "dct_cos_k5": 0.726,
+  "gripper_rmse": 0.059
+ },
+ "dataset_variant": "~/work/smolvla/datasets/se3_relwp (builder: ~/work/smolvla/variants/make_se3_dataset.py)",
+ "deploy_contract": "4_deploy/inference/se3_contract.py (action_contract: se3_relwp_v1)",
+ "note": "NOT promoted to 7_storage/run. Requires real-robot validation before promotion.",
+ "created": "2026-08-21",
+ "final_decision": "CONFIRMED 2026-08-21: final configuration = this model + observation_alignment.enable=true (deployment_v6_candidate.yaml). V7 (latency-baked, hold-out 2.97cm best vs V6 2.92cm) kept only as fallback for alignment-less deployments; do not combine V7 with alignment."
+}

@@ -25,7 +25,7 @@ from tools.run_full_dataset_pipeline import (
 )
 import importlib.util
 
-PREFLIGHT_PATH = Path(__file__).resolve().parents[1] / "3_training/scripts/validate_incremental_training_preflight.py"
+PREFLIGHT_PATH = Path(__file__).resolve().parents[1] / "training/validate_incremental_training_preflight.py"
 spec = importlib.util.spec_from_file_location("preflight_module", PREFLIGHT_PATH)
 assert spec is not None and spec.loader is not None
 preflight_mod = importlib.util.module_from_spec(spec)
@@ -235,8 +235,8 @@ class PipelineRegressionTest(unittest.TestCase):
 
     def test_pipeline_tests_never_modify_production_run(self) -> None:
         """Verify that running mock promotion with tmp run_root leaves production run strictly untouched."""
-        prod_run = Path(__file__).resolve().parents[1] / "7_storage/run/pretrained_model/model.safetensors"
-        prod_manifest = Path(__file__).resolve().parents[1] / "7_storage/run/run_manifest.json"
+        prod_run = Path(__file__).resolve().parents[1] / "artifacts/run/pretrained_model/model.safetensors"
+        prod_manifest = Path(__file__).resolve().parents[1] / "artifacts/run/run_manifest.json"
         
         if prod_run.exists() and prod_manifest.exists():
             import hashlib
@@ -303,7 +303,7 @@ class PipelineRegressionTest(unittest.TestCase):
         """Explicit regression check that verified bootstrap dataset is 77ep / 12320 rows."""
         bootstrap_dataset = (
             Path(__file__).resolve().parents[1]
-            / "7_storage/datasets/202608161336/03_lerobot/lerobot_dataset_10hz_chunk15_incremental_baseline_v1"
+            / "artifacts/datasets/202608161336/03_lerobot/lerobot_dataset_10hz_chunk15_incremental_baseline_v1"
         )
         if bootstrap_dataset.exists():
             meta = json.loads((bootstrap_dataset / "meta" / "info.json").read_text())

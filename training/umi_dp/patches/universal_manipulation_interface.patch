@@ -1,0 +1,165 @@
+diff --git a/diffusion_policy/config/task/umi_gopro.yaml b/diffusion_policy/config/task/umi_gopro.yaml
+new file mode 100644
+index 0000000..5a1d82e
+--- /dev/null
++++ b/diffusion_policy/config/task/umi_gopro.yaml
+@@ -0,0 +1,106 @@
++name: umi_gopro
++
++camera_obs_latency: 0.125
++robot_obs_latency: 0.0001
++gripper_obs_latency: 0.02
++dataset_frequeny: 0 #59.94
++obs_down_sample_steps: 6 # 60Hz source -> 10Hz (matches SmolVLA 10Hz contract)
++
++low_dim_obs_horizon: 2
++img_obs_horizon: 2
++action_horizon: 16
++ignore_proprioception: False
++
++shape_meta: &shape_meta
++  # acceptable types: rgb, low_dim
++  obs:
++    camera0_rgb:
++      shape: [3, 224, 224]
++      horizon: ${task.img_obs_horizon} # int
++      latency_steps: 0 # float
++      down_sample_steps: ${task.obs_down_sample_steps} # int
++      type: rgb
++      ignore_by_policy: False
++    robot0_eef_pos:
++      shape: [3]
++      horizon: ${task.low_dim_obs_horizon} # int
++      latency_steps: ${eval:'(${task.camera_obs_latency} - ${task.robot_obs_latency}) * ${task.dataset_frequeny}'} # float
++      down_sample_steps: ${task.obs_down_sample_steps} # float
++      type: low_dim
++      ignore_by_policy: ${task.ignore_proprioception}
++    # robot0_eef_pos_abs:
++    #   shape: [1]
++    #   axis: [2] # 2 means z-axis
++    #   horizon: ${task.low_dim_obs_horizon} # int
++    #   latency_steps: ${eval:'(${task.camera_obs_latency} - ${task.robot_obs_latency}) * ${task.dataset_frequeny}'} # float
++    #   down_sample_steps: ${task.obs_down_sample_steps} # float
++    #   type: low_dim
++    # robot0_eef_rot_axis_angle_abs:
++    #   shape: [2]
++    #   axis: [0, 1] # yaw and pitch
++    #   horizon: ${task.low_dim_obs_horizon} # int
++    #   latency_steps: ${eval:'(${task.camera_obs_latency} - ${task.robot_obs_latency}) * ${task.dataset_frequeny}'} # float
++    #   down_sample_steps: ${task.obs_down_sample_steps} # float
++    #   type: low_dim
++    robot0_eef_rot_axis_angle:
++      raw_shape: [3]
++      shape: [6]
++      horizon: ${task.low_dim_obs_horizon} # int
++      latency_steps: ${eval:'(${task.camera_obs_latency} - ${task.robot_obs_latency}) * ${task.dataset_frequeny}'} # float
++      down_sample_steps: ${task.obs_down_sample_steps} # float
++      type: low_dim
++      rotation_rep: rotation_6d
++      ignore_by_policy: ${task.ignore_proprioception}
++    robot0_gripper_width:
++      shape: [1]
++      horizon: ${task.low_dim_obs_horizon} # int
++      latency_steps: ${eval:'(${task.camera_obs_latency} - ${task.gripper_obs_latency}) * ${task.dataset_frequeny}'} # float
++      down_sample_steps: ${task.obs_down_sample_steps} # float
++      type: low_dim
++      ignore_by_policy: ${task.ignore_proprioception}
++
++    # pose with respect to episode start
++    # robot0_eef_pos_wrt_start:
++    #   shape: [3]
++    #   horizon: ${task.low_dim_obs_horizon} # int
++    #   latency_steps: ${eval:'(${task.camera_obs_latency} - ${task.robot_obs_latency}) * ${task.dataset_frequeny}'} # float
++    #   down_sample_steps: ${task.obs_down_sample_steps} # float
++    #   type: low_dim
++    #   ignore_by_policy: ${task.ignore_proprioception}
++    robot0_eef_rot_axis_angle_wrt_start:
++      raw_shape: [3]
++      shape: [6]
++      horizon: ${task.low_dim_obs_horizon} # int
++      latency_steps: ${eval:'(${task.camera_obs_latency} - ${task.robot_obs_latency}) * ${task.dataset_frequeny}'} # float
++      down_sample_steps: ${task.obs_down_sample_steps} # float
++      type: low_dim
++      ignore_by_policy: ${task.ignore_proprioception}
++  action: 
++    shape: [10]
++    horizon: ${task.action_horizon}
++    latency_steps: 0 # float
++    down_sample_steps: ${task.obs_down_sample_steps} # int
++    rotation_rep: rotation_6d
++
++task_name: &task_name umi_gopro
++dataset_path: /home/jeonchanwook/work/umi_dp/data/gopro_umi_202608161903.zarr.zip
++pose_repr: &pose_repr
++  obs_pose_repr: relative # abs or rel
++  action_pose_repr: relative # abs or rel or delta
++
++env_runner:
++  _target_: diffusion_policy.env_runner.real_pusht_image_runner.RealPushTImageRunner
++
++dataset:
++  _target_: diffusion_policy.dataset.umi_dataset.UmiDataset
++  shape_meta: *shape_meta
++  dataset_path: ${task.dataset_path}
++  cache_dir: null
++  pose_repr: *pose_repr
++  action_padding: False
++  temporally_independent_normalization: False
++  repeat_frame_prob: 0.0
++  max_duration: null
++  seed: 42
++  val_ratio: 0.0
++  val_episodes: [90, 91, 92, 93, 94, 95, 96, 97, 98]
+diff --git a/diffusion_policy/dataset/umi_dataset.py b/diffusion_policy/dataset/umi_dataset.py
+index 1285115..e50f480 100644
+--- a/diffusion_policy/dataset/umi_dataset.py
++++ b/diffusion_policy/dataset/umi_dataset.py
+@@ -37,7 +37,8 @@ class UmiDataset(BaseDataset):
+         repeat_frame_prob: float=0.0,
+         seed: int=42,
+         val_ratio: float=0.0,
+-        max_duration: Optional[float]=None
++        max_duration: Optional[float]=None,
++        val_episodes: Optional[list]=None,
+     ):
+         self.pose_repr = pose_repr
+         self.obs_pose_repr = self.pose_repr.get('obs_pose_repr', 'rel')
+@@ -123,11 +124,16 @@ class UmiDataset(BaseDataset):
+         key_latency_steps['action'] = shape_meta['action']['latency_steps']
+         key_down_sample_steps['action'] = shape_meta['action']['down_sample_steps']
+ 
+-        val_mask = get_val_mask(
+-            n_episodes=replay_buffer.n_episodes, 
+-            val_ratio=val_ratio,
+-            seed=seed
+-        )
++        if val_episodes is not None and len(val_episodes) > 0:
++            # explicit hold-out episodes (gopro_umi eval protocol)
++            val_mask = np.zeros(replay_buffer.n_episodes, dtype=bool)
++            val_mask[np.asarray(list(val_episodes), dtype=int)] = True
++        else:
++            val_mask = get_val_mask(
++                n_episodes=replay_buffer.n_episodes, 
++                val_ratio=val_ratio,
++                seed=seed
++            )
+         train_mask = ~val_mask
+ 
+         self.sampler_lowdim_keys = list()
+diff --git a/diffusion_policy/workspace/train_diffusion_unet_image_workspace.py b/diffusion_policy/workspace/train_diffusion_unet_image_workspace.py
+index 80b5193..0b9c5ff 100644
+--- a/diffusion_policy/workspace/train_diffusion_unet_image_workspace.py
++++ b/diffusion_policy/workspace/train_diffusion_unet_image_workspace.py
+@@ -104,7 +104,12 @@ class TrainDiffusionUnetImageWorkspace(BaseWorkspace):
+             lastest_ckpt_path = self.get_checkpoint_path()
+             if lastest_ckpt_path.is_file():
+                 accelerator.print(f"Resuming from checkpoint {lastest_ckpt_path}")
++                # torch>=2 LambdaLR requires 'initial_lr' in param groups when last_epoch is given;
++                # optimizer.load_state_dict drops it, so restore the base lrs afterwards.
++                _base_lrs = [g['lr'] for g in self.optimizer.param_groups]
+                 self.load_checkpoint(path=lastest_ckpt_path)
++                for g, _lr in zip(self.optimizer.param_groups, _base_lrs):
++                    g['initial_lr'] = _lr
+ 
+         # configure dataset
+         dataset: BaseImageDataset

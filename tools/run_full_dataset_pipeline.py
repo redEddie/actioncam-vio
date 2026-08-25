@@ -2,7 +2,7 @@
 """One-command full dataset pipeline orchestrator for gopro_umi.
 
 Orchestrates the entire lifecycle:
-  0. Timestamp Workspace Creation (7_storage/datasets/YYYYMMDDHHMM)
+  0. Timestamp Workspace Creation (artifacts/datasets/YYYYMMDDHHMM)
   1. Source Association (00_source/episodes)
   2. ORB-SLAM3 Processing (01_orbslam3)
   3. Base Zarr Generation (02_zarr/replay_buffer.zarr)
@@ -12,7 +12,7 @@ Orchestrates the entire lifecycle:
   7. Training Preflight
   8. SmolVLA Training (04_training/checkpoints)
   9. Final Model Materialization & Validation (04_training/final/pretrained_model)
-  10. Safe Promotion to Production (7_storage/run/pretrained_model) with explicit Rollback
+  10. Safe Promotion to Production (artifacts/run/pretrained_model) with explicit Rollback
   11. Manifest & Summary Finalization
 
 Usage:
@@ -48,7 +48,7 @@ import numpy as np
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-STORAGE_ROOT = PROJECT_ROOT / "7_storage"
+STORAGE_ROOT = PROJECT_ROOT / "artifacts"
 DATASETS_ROOT = STORAGE_ROOT / "datasets"
 RUN_ROOT = STORAGE_ROOT / "run"
 
@@ -154,10 +154,10 @@ class PipelineWorkspace:
 | **7. SmolVLA Training** | `{stages.get('training', {}).get('status', 'PENDING')}` | Checkpoints: `04_training/checkpoints/` |
 | **8. Final Model** | `{stages.get('final_model', {}).get('status', 'PENDING')}` | Materialized: `04_training/final/pretrained_model` |
 | **9. Model Validation** | `{stages.get('model_validation', {}).get('status', 'PENDING')}` | Contract: `[1, 15, 6]` -> `[15, 6]` |
-| **10. Run Promotion** | `{promotion_status}` | Target: `7_storage/run/pretrained_model` |
+| **10. Run Promotion** | `{promotion_status}` | Target: `artifacts/run/pretrained_model` |
 
 ## Model Promotion
-* **Active Run Model:** `7_storage/run/pretrained_model`
+* **Active Run Model:** `artifacts/run/pretrained_model`
 * **Promoted Dataset:** `{self.dataset_id if promotion_status == 'PASS' else 'UNCHANGED'}`
 """
         self.summary_path.write_text(summary)
@@ -481,7 +481,7 @@ def execute_pipeline(
 
         cmd = [
             python_bin,
-            str(PROJECT_ROOT / "1_capture/actioncam-vio/batch_reprocess.py"),
+            str(PROJECT_ROOT / "capture/batch_reprocess.py"),
             "--map-video", str(map_video),
             "--episode-dir", str(orb_episode_dir),
             "--result-root", str(orb_result_dir),
@@ -489,7 +489,7 @@ def execute_pipeline(
         ]
         log_file = ws.logs_dir / "orbslam3.log"
         try:
-            run_command_logged(cmd, log_file, cwd=PROJECT_ROOT / "1_capture/actioncam-vio")
+            run_command_logged(cmd, log_file, cwd=PROJECT_ROOT / "capture")
             ws.update_stage(stage, StageStatus.PASS, result_root=str(orb_result_dir))
         except Exception as exc:
             ws.update_stage(stage, StageStatus.FAIL, error=str(exc))
@@ -504,7 +504,7 @@ def execute_pipeline(
         ws.update_stage(stage, StageStatus.RUNNING)
         cmd = [
             python_bin,
-            str(PROJECT_ROOT / "2_dataset/conversion/build_umi_zarr.py"),
+            str(PROJECT_ROOT / "dataset/build_umi_zarr.py"),
             "--actioncam-root", str(ws.orbslam3_dir),
             "-o", str(ws.base_zarr),
             "--overwrite",
@@ -526,7 +526,7 @@ def execute_pipeline(
         ws.update_stage(stage, StageStatus.RUNNING)
         cmd = [
             python_bin,
-            str(PROJECT_ROOT / "2_dataset/conversion/build_yawfree_zarr.py"),
+            str(PROJECT_ROOT / "dataset/build_yawfree_zarr.py"),
             "--source", str(ws.base_zarr),
             "-o", str(ws.yawfree_zarr),
             "--overwrite",
@@ -548,7 +548,7 @@ def execute_pipeline(
         ws.update_stage(stage, StageStatus.RUNNING)
         cmd = [
             python_bin,
-            str(PROJECT_ROOT / "2_dataset/conversion/convert_to_lerobot_10hz_incremental.py"),
+            str(PROJECT_ROOT / "dataset/convert_to_lerobot_10hz_incremental.py"),
             "--input-zarr", str(ws.yawfree_zarr),
             "--output-dir", str(ws.lerobot_dir),
             "--overwrite",
@@ -570,7 +570,7 @@ def execute_pipeline(
         ws.update_stage(stage, StageStatus.RUNNING)
         cmd = [
             python_bin,
-            str(PROJECT_ROOT / "2_dataset/validation/validate_canonical_10hz_dataset.py"),
+            str(PROJECT_ROOT / "dataset/validate_canonical_10hz_dataset.py"),
             "--dataset", str(ws.lerobot_dir),
             "--source-zarr", str(ws.yawfree_zarr),
             "--write-artifacts",
@@ -593,7 +593,7 @@ def execute_pipeline(
         ws.update_stage(stage, StageStatus.RUNNING)
         cmd = [
             python_bin,
-            str(PROJECT_ROOT / "3_training/scripts/validate_incremental_training_preflight.py"),
+            str(PROJECT_ROOT / "training/validate_incremental_training_preflight.py"),
             "--dataset", str(ws.lerobot_dir),
             "--checkpoint", str(RUN_ROOT / "pretrained_model"),
             "--output", str(ws.training_dir),
@@ -615,7 +615,7 @@ def execute_pipeline(
         ws.update_stage(stage, StageStatus.RUNNING)
         cmd = [
             python_bin,
-            str(PROJECT_ROOT / "3_training/scripts/train_delta.py"),
+            str(PROJECT_ROOT / "training/train_delta.py"),
             "--dataset-root", str(ws.lerobot_dir),
             "--source-checkpoint", str(RUN_ROOT / "pretrained_model"),
             "--output-dir", str(ws.training_dir),
@@ -663,7 +663,7 @@ def execute_pipeline(
         ws.update_stage(stage, StageStatus.SKIPPED, reason="--no-promote")
         ws.write_summary(promotion_status="SKIPPED")
     else:
-        print(f"\n[STAGE 11/11] Safely Promoting Validated Candidate to Production (7_storage/run/)...")
+        print(f"\n[STAGE 11/11] Safely Promoting Validated Candidate to Production (artifacts/run/)...")
         ws.update_stage(stage, StageStatus.RUNNING)
         try:
             promo_res = safe_promote_model(ws, run_root=run_root)
@@ -686,7 +686,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--episodes", type=Path, help="path to directory containing episode source files")
     parser.add_argument("--dry-run", action="store_true", help="resolve paths and show configuration without running heavy stages")
     parser.add_argument("--resume", type=str, metavar="YYYYMMDDHHMM", help="resume an existing timestamp dataset workspace")
-    parser.add_argument("--no-promote", action="store_true", help="complete pipeline without replacing 7_storage/run model")
+    parser.add_argument("--no-promote", action="store_true", help="complete pipeline without replacing artifacts/run model")
     parser.add_argument("--promote", type=str, metavar="YYYYMMDDHHMM", help="explicitly validate and promote an existing trained workspace")
     return parser.parse_args()
 
